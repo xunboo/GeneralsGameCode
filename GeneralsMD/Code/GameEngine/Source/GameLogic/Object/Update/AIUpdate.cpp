@@ -4663,9 +4663,11 @@ Object* AIUpdateInterface::getNextMoodTarget( Bool calledByAI, Bool calledDuring
 
 	// Instead of shroud affecting the ability to attack, it affects the ability to target.
 	// The same checks apply as the old WeaponSet check (now commented out, search for getShroudedStatus)
+	// TheSuperHackers @feature Competitive AI must filter automatic targets by its actual vision.
 	if( calledByAI &&
 			obj->getControllingPlayer() &&
-			obj->getControllingPlayer()->getPlayerType() == PLAYER_HUMAN
+			(obj->getControllingPlayer()->getPlayerType() == PLAYER_HUMAN
+				|| obj->getControllingPlayer()->isCompetitiveAI())
 		)
 	{
 		flags |= AI::UNFOGGED;

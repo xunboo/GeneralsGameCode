@@ -349,7 +349,7 @@ Object *BuildAssistant::buildObjectNow( Object *constructorObject, const ThingTe
 	{
 		// totally bogus. We tried to move our units out of the way, but they wouldn't.
 		// Chode-boys.
-		if (owningPlayer->getPlayerType()==PLAYER_HUMAN) {
+		if (owningPlayer->getPlayerType()==PLAYER_HUMAN || owningPlayer->isCompetitiveAI()) {
 			return nullptr;	// ai gets to cheat.  jba.
 		}
 	}

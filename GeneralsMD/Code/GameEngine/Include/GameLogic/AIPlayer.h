@@ -179,6 +179,9 @@ public: // AIPlayer interface, may be overridden by AISkirmishPlayer.  jba.
 	virtual void recruitSpecificAITeam(TeamPrototype *teamProto, Real recruitRadius); ///< Builds this team immediately.
 
 	virtual Bool isSkirmishAI() {return false;}
+	virtual Bool isCompetitiveAI() const { return false; }
+	virtual void observePublicSuperweapon(const Object *object, UnsignedInt readyFrame) {}
+	virtual void setCompetitiveAI(Bool enabled) {}
 	virtual Player *getAiEnemy() {return nullptr;}	///< Solo AI attacks based on scripting.  Only skirmish auto-acquires an enemy at this point.  jba.
 	virtual Bool checkBridges(Object *unit, Waypoint *way) {return false;}
 	virtual void repairStructure(ObjectID structure);

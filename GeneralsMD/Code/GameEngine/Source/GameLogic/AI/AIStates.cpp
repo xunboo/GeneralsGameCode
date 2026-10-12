@@ -5627,6 +5627,17 @@ StateReturnType AIAttackState::update()
 	{
 		Object* victim = getMachineGoalObject();
 
+		// TheSuperHackers @feature Competitive AI cannot pursue an object after it leaves vision.
+		// Projectiles already in flight retain their normal tracking rules.
+		if (victim && !source->isKindOf(KINDOF_PROJECTILE) && source->getControllingPlayer()->isCompetitiveAI()
+			&& victim->getControllingPlayer() != source->getControllingPlayer()
+			&& victim->getShroudedStatus(source->getControllingPlayer()->getPlayerIndex()) != OBJECTSHROUD_CLEAR
+			&& victim->getShroudedStatus(source->getControllingPlayer()->getPlayerIndex()) != OBJECTSHROUD_PARTIAL_CLEAR)
+		{
+			source->getAI()->friend_setGoalObject(nullptr);
+			source->getAI()->setCurrentVictim(nullptr);
+			return STATE_FAILURE;
+		}
 		if (victim == nullptr || victim->isEffectivelyDead())
 		{
 			source->getAI()->notifyVictimIsDead();

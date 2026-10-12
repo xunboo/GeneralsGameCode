@@ -762,10 +762,11 @@ static void populateRandomSideAndColor( GameInfo *game )
 			playerTemplateIdx = GameLogicRandomValue(0, ThePlayerTemplateStore->getPlayerTemplateCount()-1);
 #endif
 			const PlayerTemplate* pt = ThePlayerTemplateStore->getNthPlayerTemplate(playerTemplateIdx);
-			if (!pt || pt->getStartingBuilding().isEmpty())
+			Bool competitiveFaction = pt && (pt->getSide() == "America" || pt->getSide() == "China" || pt->getSide() == "GLA");
+			if (!pt || pt->getStartingBuilding().isEmpty() || (slot->getState() == SLOT_COMPETITIVE_AI && !competitiveFaction))
 			{
 #ifdef MORE_RANDOM
-				DEBUG_CRASH(("should not be possible"));
+				if (slot->getState() != SLOT_COMPETITIVE_AI) DEBUG_CRASH(("should not be possible"));
 #endif
 				playerTemplateIdx = -1; // only pick playable factions
 			}
@@ -1487,6 +1488,10 @@ void GameLogic::tryStartNewGame( Bool loadingSaveGame )
 					case SLOT_EASY_AI : d.setInt(TheKey_skirmishDifficulty, DIFFICULTY_EASY); break;
 					case SLOT_MED_AI : d.setInt(TheKey_skirmishDifficulty, DIFFICULTY_NORMAL); break;
 					case SLOT_BRUTAL_AI : d.setInt(TheKey_skirmishDifficulty, DIFFICULTY_HARD); break;
+					case SLOT_COMPETITIVE_AI :
+						d.setInt(TheKey_skirmishDifficulty, DIFFICULTY_NORMAL);
+						d.setBool(NAMEKEY("playerIsCompetitiveAI"), true);
+						break;
 					default: break;	 // no setting.
 				}
 			}

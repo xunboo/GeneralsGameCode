@@ -863,7 +863,13 @@ void Player::initFromDict(const Dict* d)
 		setPlayerType(PLAYER_COMPUTER, skirmish);
 	}
 	m_mpStartIndex = d->getInt(TheKey_multiplayerStartIndex, &exists);
-	if (skirmish) {
+	// TheSuperHackers @feature Competitive skirmish AI owns its decisions; legacy scripts include cash and intelligence cheats.
+	if (skirmish && m_ai && d->getBool(NAMEKEY("playerIsCompetitiveAI")))
+	{
+		m_ai->setCompetitiveAI(true);
+		m_ai->setAIDifficulty(DIFFICULTY_NORMAL);
+	}
+	if (skirmish && (!m_ai || !m_ai->isCompetitiveAI())) {
 		// Copy and qualify scripts, and teams.
 
 		AsciiString mySide = getSide();
@@ -1151,6 +1157,16 @@ void Player::becomingLocalPlayer(Bool yes)
 Bool Player::isSkirmishAIPlayer()
 {
 	return m_ai ? m_ai->isSkirmishAI() : false;
+}
+
+Bool Player::isCompetitiveAI() const
+{
+	return m_ai && m_ai->isCompetitiveAI();
+}
+
+void Player::observePublicSuperweapon(const Object *object, UnsignedInt readyFrame)
+{
+	if (m_ai) m_ai->observePublicSuperweapon(object, readyFrame);
 }
 
 
@@ -3400,6 +3416,8 @@ UnsignedInt Player::getOrStartSpecialPowerReadyFrame( const SpecialPowerTemplate
 //-------------------------------------------------------------------------------------------------
 void Player::friend_applyDifficultyBonusesForObject(Object* obj, Bool apply) const
 {
+	// TheSuperHackers @feature Competitive AI uses the same health and weapon rules as human players.
+	if (isCompetitiveAI()) return;
 	if (TheGameLogic->isInSinglePlayerGame())
 	{
 		Real healthFactor = TheGlobalData->m_soloPlayerHealthBonusForDifficulty[getPlayerType()][getPlayerDifficulty()];
@@ -4009,6 +4027,7 @@ Bool Player::isPlayableSide() const
 // ------------------------------------------------------------------------------------------------
 void Player::crc( Xfer *xfer )
 {
+	if (isCompetitiveAI()) xfer->xferSnapshot(m_ai);
 	// Player battle plan bonuses
 	Bool battlePlanBonus = m_battlePlanBonuses != nullptr;
 	xfer->xferBool( &battlePlanBonus );

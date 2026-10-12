@@ -40,7 +40,9 @@ enum SlotState CPP_11(: Int)
 	SLOT_EASY_AI,
 	SLOT_MED_AI,
 	SLOT_BRUTAL_AI,
-	SLOT_PLAYER
+	SLOT_PLAYER,
+	// TheSuperHackers @feature Preserve existing slot values; competitive AI is a separate skirmish mode.
+	SLOT_COMPETITIVE_AI
 };
 
 enum

@@ -464,6 +464,21 @@ void reallyDoStart()
 Bool sandboxOk = FALSE;
 static void startPressed()
 {
+	// TheSuperHackers @feature The first competitive strategy covers the three base factions.
+	for (Int i = 0; i < MAX_SLOTS; ++i)
+	{
+		const GameSlot *slot = TheSkirmishGameInfo->getConstSlot(i);
+		if (!slot || slot->getState() != SLOT_COMPETITIVE_AI || slot->getPlayerTemplate() == PLAYERTEMPLATE_RANDOM) continue;
+		const PlayerTemplate *playerTemplate = ThePlayerTemplateStore->getNthPlayerTemplate(slot->getPlayerTemplate());
+		AsciiString side = playerTemplate ? playerTemplate->getSide() : AsciiString::TheEmptyString;
+		if (side != "America" && side != "China" && side != "GLA")
+		{
+			buttonPushed = FALSE;
+			MessageBoxOk(TheGameText->fetch("GUI:ErrorStartingGame"),
+				TheGameText->FETCH_OR_SUBSTITUTE("GUI:CompetitiveAIFactions", L"Competitive AI supports USA, China and GLA. Choose a base faction or Random."), nullptr);
+			return;
+		}
+	}
 
 	BOOL isReady = FALSE;
 	Int playerCount = TheSkirmishGameInfo->getNumPlayers();
@@ -1096,6 +1111,9 @@ void InitSkirmishGameGadgets()
       GadgetComboBoxSetItemData(comboBoxPlayer[i], 3, (void *)SLOT_MED_AI);
 			GadgetComboBoxAddEntry(comboBoxPlayer[i],TheGameText->fetch("GUI:HardAI"),white);
       GadgetComboBoxSetItemData(comboBoxPlayer[i], 4, (void *)SLOT_BRUTAL_AI);
+			// TheSuperHackers @feature Competitive AI follows Brutal AI without replacing its strategy.
+			GadgetComboBoxAddEntry(comboBoxPlayer[i], TheGameText->FETCH_OR_SUBSTITUTE("GUI:CompetitiveAI", L"Competitive AI"), white);
+			GadgetComboBoxSetItemData(comboBoxPlayer[i], 5, (void *)SLOT_COMPETITIVE_AI);
 			GadgetComboBoxSetSelectedPos(comboBoxPlayer[i],0);
 
 		}

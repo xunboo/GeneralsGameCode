@@ -450,7 +450,9 @@ void UpdateSlotList( GameInfo *myGame, GameWindow *comboPlayer[],
 			}
 			else
 			{
-				GadgetComboBoxSetSelectedPos(comboPlayer[i], slot->getState(), TRUE);
+				// TheSuperHackers @feature Slot values stay compatible; the new menu entry follows Brutal AI.
+				GadgetComboBoxSetSelectedPos(comboPlayer[i],
+					slot->getState() == SLOT_COMPETITIVE_AI ? 5 : slot->getState(), TRUE);
         if( buttonAccept &&  buttonAccept[i] )
 				  buttonAccept[i]->winHide(TRUE);
 			}

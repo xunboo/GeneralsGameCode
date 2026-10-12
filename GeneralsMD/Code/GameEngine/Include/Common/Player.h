@@ -449,6 +449,8 @@ public:
 
 	/// Is this player a skirmish ai player?
 	Bool isSkirmishAIPlayer();
+	Bool isCompetitiveAI() const;
+	void observePublicSuperweapon(const Object *object, UnsignedInt readyFrame);
 
 	/// Have the ai check for bridges.
 	virtual Bool checkBridges(Object *unit, Waypoint *way);

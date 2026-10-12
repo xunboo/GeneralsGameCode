@@ -121,6 +121,7 @@ public:
 	void syncReadyFrameToStatusQuo();
 
 	virtual const SpecialPowerTemplate* getSpecialPowerTemplate() const override;
+	void publishCompetitiveTimer() const;
 	virtual ScienceType getRequiredScience() const override;
 
 	virtual void onSpecialPowerCreation() override;	// called by a create module to start our countdown
