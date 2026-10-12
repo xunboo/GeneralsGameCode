@@ -239,7 +239,8 @@ UnsignedInt SupplyTruckAIUpdate::getActionDelayForDock( Object *dock )
 Real SupplyTruckAIUpdate::getWarehouseScanDistance() const
 {
 	// Ai players get larger scan range.  jba.
-	if (getObject()->getControllingPlayer()->getPlayerType() == PLAYER_COMPUTER) {
+	if (getObject()->getControllingPlayer()->getPlayerType() == PLAYER_COMPUTER
+		&& !getObject()->getControllingPlayer()->isCompetitiveAI()) {
 		return 2 * getSupplyTruckAIUpdateModuleData()->m_warehouseScanDistance;
 	}
 	return getSupplyTruckAIUpdateModuleData()->m_warehouseScanDistance;

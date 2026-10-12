@@ -501,6 +501,12 @@ Bool WeaponSet::isAnyWithinTargetPitch(const Object* obj, const Object* victim) 
 //-------------------------------------------------------------------------------------------------
 CanAttackResult WeaponSet::getAbleToAttackSpecificObject( AbleToAttackType attackType, const Object* source, const Object* victim, CommandSourceType commandSource, WeaponSlotType specificSlot ) const
 {
+	// TheSuperHackers @feature Automatic acquisition must obey competitive AI vision as well as its commander.
+	if (source && victim && !source->isKindOf(KINDOF_PROJECTILE) && source->getControllingPlayer()->isCompetitiveAI()
+		&& victim->getControllingPlayer() != source->getControllingPlayer()
+		&& victim->getShroudedStatus(source->getControllingPlayer()->getPlayerIndex()) != OBJECTSHROUD_CLEAR
+		&& victim->getShroudedStatus(source->getControllingPlayer()->getPlayerIndex()) != OBJECTSHROUD_PARTIAL_CLEAR)
+		return ATTACKRESULT_NOT_POSSIBLE;
 
 	// basic sanity checks.
 	if (!source ||

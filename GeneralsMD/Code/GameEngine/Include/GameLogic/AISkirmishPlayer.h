@@ -30,6 +30,7 @@
 
 #include "Common/GameMemory.h"
 #include "GameLogic/AIPlayer.h"
+#include "GameLogic/CompetitiveSkirmishAI.h"
 
 class BuildListInfo;
 class SpecialPowerTemplate;
@@ -45,6 +46,9 @@ class AISkirmishPlayer : public AIPlayer
 public:	 // AISkirmish specific methods.
 
 	AISkirmishPlayer( Player *p );							///< constructor
+	virtual Bool isCompetitiveAI() const override { return m_competitive; }
+	virtual void observePublicSuperweapon(const Object *object, UnsignedInt readyFrame) override;
+	virtual void setCompetitiveAI(Bool enabled) override;
 	virtual Bool computeSuperweaponTarget(const SpecialPowerTemplate *power, Coord3D *pos, Int playerNdx, Real weaponRadius) override; ///< Calculates best pos for weapon given radius.
 
 public:	// AIPlayer interface methods.
@@ -55,6 +59,7 @@ public:	// AIPlayer interface methods.
 
 	/// Invoked when a unit I am training comes into existence
 	virtual void onUnitProduced( Object *factory, Object *unit ) override;
+	virtual void onStructureProduced(Object *factory, Object *structure) override;
 
 	virtual void buildSpecificAITeam(TeamPrototype *teamProto, Bool priorityBuild) override; ///< Builds this team immediately.
 
@@ -113,5 +118,7 @@ protected:
 
 	UnsignedInt m_frameToCheckEnemy;
 	Player			*m_currentEnemy;
+	Bool m_competitive;
+	CompetitiveSkirmishAI m_competitiveAI;
 
 };

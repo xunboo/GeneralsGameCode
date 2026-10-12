@@ -225,7 +225,8 @@ UnsignedInt WorkerAIUpdate::getActionDelayForDock( Object *dock )
 Real WorkerAIUpdate::getWarehouseScanDistance() const
 {
 	// Ai players get larger scan range.  jba.
-	if (getObject()->getControllingPlayer()->getPlayerType() == PLAYER_COMPUTER) {
+	if (getObject()->getControllingPlayer()->getPlayerType() == PLAYER_COMPUTER
+		&& !getObject()->getControllingPlayer()->isCompetitiveAI()) {
 		return 2 * getWorkerAIUpdateModuleData()->m_warehouseScanDistance;
 	}
 	return getWorkerAIUpdateModuleData()->m_warehouseScanDistance;
@@ -350,7 +351,7 @@ Object *WorkerAIUpdate::construct( const ThingTemplate *what,
 	{
 
 		// AI has weaker restriction on building
-		Bool dozerIsAI = owningPlayer->getPlayerType() == PLAYER_COMPUTER;
+		Bool dozerIsAI = owningPlayer->getPlayerType() == PLAYER_COMPUTER && !owningPlayer->isCompetitiveAI();
 		if( dozerIsAI )
 		{
 

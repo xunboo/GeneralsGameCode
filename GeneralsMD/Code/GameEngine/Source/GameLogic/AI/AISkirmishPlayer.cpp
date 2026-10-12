@@ -75,7 +75,9 @@ m_curLeftFlankRightDefenseAngle(0),
 m_curRightFlankLeftDefenseAngle(0),
 m_curRightFlankRightDefenseAngle(0),
 m_frameToCheckEnemy(0),
-m_currentEnemy(nullptr)
+m_currentEnemy(nullptr),
+m_competitive(false),
+m_competitiveAI(p)
 
 {
 	m_frameLastBuildingBuilt = TheGameLogic->getFrame();
@@ -313,7 +315,29 @@ void AISkirmishPlayer::processBaseBuilding()
  */
 void AISkirmishPlayer::onUnitProduced( Object *factory, Object *unit )
 {
+	if (m_competitive) return;
 	AIPlayer::onUnitProduced(factory, unit);
+}
+
+// TheSuperHackers @feature Preserve normal construction health and let the competitive controller manage gatherers.
+void AISkirmishPlayer::onStructureProduced(Object *factory, Object *structure)
+{
+	if (!m_competitive) AIPlayer::onStructureProduced(factory, structure);
+}
+
+void AISkirmishPlayer::setCompetitiveAI(Bool enabled)
+{
+	m_competitive = enabled && CompetitiveSkirmishAI::supportsSide(m_player->getSide());
+	if (m_competitive)
+	{
+		m_player->setCanBuildBase(true);
+		m_player->setCanBuildUnits(true);
+	}
+}
+
+void AISkirmishPlayer::observePublicSuperweapon(const Object *object, UnsignedInt readyFrame)
+{
+	if (m_competitive) m_competitiveAI.observePublicSuperweapon(object, readyFrame);
 }
 
 /**
@@ -548,6 +572,16 @@ void AISkirmishPlayer::acquireEnemy()
 */
 Player *AISkirmishPlayer::getAiEnemy()
 {
+	if (m_competitive)
+	{
+		// Opponent identities and alliances are public; their hidden armies and bases are not.
+		for (Int i = 0; i < ThePlayerList->getPlayerCount(); ++i)
+		{
+			Player *player = ThePlayerList->getNthPlayer(i);
+			if (m_player->getRelationship(player->getDefaultTeam()) == ENEMIES) return player;
+		}
+		return nullptr;
+	}
 	if (TheGameLogic->getFrame()>=m_frameToCheckEnemy) {
 		m_frameToCheckEnemy = TheGameLogic->getFrame() + 5*LOGICFRAMES_PER_SECOND;
 		acquireEnemy();
@@ -954,6 +988,11 @@ void AISkirmishPlayer::doTeamBuilding()
  */
 void AISkirmishPlayer::update()
 {
+	if (m_competitive)
+	{
+		m_competitiveAI.update();
+		return;
+	}
 	AIPlayer::update();
 }
 
@@ -1073,6 +1112,11 @@ void AISkirmishPlayer::adjustBuildList(BuildListInfo *list)
  */
 void AISkirmishPlayer::newMap()
 {
+	if (m_competitive)
+	{
+		m_competitiveAI.reset();
+		return;
+	}
 
 	/* Get our proper build list. */
 	AsciiString mySide = m_player->getSide();
@@ -1133,6 +1177,7 @@ Object * AISkirmishPlayer::findDozer( const Coord3D *pos )
  */
 Bool AISkirmishPlayer::computeSuperweaponTarget(const SpecialPowerTemplate *power, Coord3D *retPos, Int playerNdx, Real weaponRadius)
 {
+	if (m_competitive) return m_competitiveAI.powerTarget(power, retPos);
 
 	Region2D bounds;
 	getPlayerStructureBounds(&bounds, playerNdx);
@@ -1182,7 +1227,7 @@ Bool AISkirmishPlayer::computeSuperweaponTarget(const SpecialPowerTemplate *powe
 // ------------------------------------------------------------------------------------------------
 void AISkirmishPlayer::crc( Xfer *xfer )
 {
-
+	if (m_competitive) m_competitiveAI.xfer(xfer);
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -1194,9 +1239,10 @@ void AISkirmishPlayer::xfer( Xfer *xfer )
 {
 
 	// version
-	XferVersion currentVersion = 1;
+	// Legacy AI keeps the original snapshot layout; new saves carry the selected mode and its memory.
+	XferVersion currentVersion = m_competitive ? 2 : 1;
 	XferVersion version = currentVersion;
-	xfer->xferVersion( &version, currentVersion );
+	xfer->xferVersion( &version, 2 );
 
 	// xfer base class info
 	AIPlayer::xfer( xfer );
@@ -1224,6 +1270,16 @@ void AISkirmishPlayer::xfer( Xfer *xfer )
 
 	// right flank right defense angle
 	xfer->xferReal( &m_curRightFlankRightDefenseAngle );
+	if (version >= 2)
+	{
+		xfer->xferBool(&m_competitive);
+		if (m_competitive) m_competitiveAI.xfer(xfer);
+	}
+	else if (xfer->getXferMode() == XFER_LOAD)
+	{
+		m_competitive = false;
+		m_competitiveAI.reset();
+	}
 
 }
 

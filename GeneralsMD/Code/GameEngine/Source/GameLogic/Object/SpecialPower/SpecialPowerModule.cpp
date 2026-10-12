@@ -180,6 +180,19 @@ void SpecialPowerModule::setReadyFrame( UnsignedInt frame )
 	//If a script should change the ready frame, we need to update the paused frame. This value isn't
 	//used directly to determine if paused or not... it uses m_pausedCount.
 	m_pausedOnFrame = TheGameLogic->getFrame();
+	publishCompetitiveTimer();
+}
+
+// TheSuperHackers @feature Deliver the game's public countdown to fair AI without exposing hidden object state.
+void SpecialPowerModule::publishCompetitiveTimer() const
+{
+	const Object *object = getObject();
+	if (!object || !object->isKindOf(KINDOF_FS_SUPERWEAPON)
+		|| object->testStatus(OBJECT_STATUS_UNDER_CONSTRUCTION) || m_pausedCount > 0
+		|| !getSpecialPowerTemplate()->hasPublicTimer()) return;
+	for (Int i = 0; i < ThePlayerList->getPlayerCount(); ++i)
+		if (ThePlayerList->getNthPlayer(i)->isCompetitiveAI())
+			ThePlayerList->getNthPlayer(i)->observePublicSuperweapon(object, getReadyFrame());
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -440,6 +453,7 @@ void SpecialPowerModule::startPowerRecharge()
 		// set the frame we will be 100% available on now
 		m_availableOnFrame = TheGameLogic->getFrame() + getSpecialPowerTemplate()->getReloadTime();
 	}
+	publishCompetitiveTimer();
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -804,6 +818,7 @@ void SpecialPowerModule::pauseCountdown( Bool pause )
 		if( m_pausedCount == 0 )
 		{
 			m_availableOnFrame += (TheGameLogic->getFrame() - m_pausedOnFrame);
+			publishCompetitiveTimer();
 		}
 	}
 }

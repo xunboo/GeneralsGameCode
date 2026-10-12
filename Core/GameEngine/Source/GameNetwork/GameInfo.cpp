@@ -199,7 +199,7 @@ void GameSlot::setMapAvailability( Bool hasMap )
 
 void GameSlot::setState( SlotState state, UnicodeString name, UnsignedInt IP )
 {
-	if (!(isAI() &&  (state == SLOT_EASY_AI || state == SLOT_MED_AI || state == SLOT_BRUTAL_AI)))
+	if (!(isAI() &&  (state == SLOT_EASY_AI || state == SLOT_MED_AI || state == SLOT_BRUTAL_AI || state == SLOT_COMPETITIVE_AI)))
 	{
 		m_color = -1;
 		m_startPos = -1;
@@ -236,6 +236,9 @@ void GameSlot::setState( SlotState state, UnicodeString name, UnsignedInt IP )
 		case SLOT_BRUTAL_AI:
 			m_name = TheGameText->fetch("GUI:HardAI");
 			break;
+		case SLOT_COMPETITIVE_AI:
+			m_name = TheGameText->FETCH_OR_SUBSTITUTE("GUI:CompetitiveAI", L"Competitive AI");
+			break;
 		case SLOT_CLOSED:
 		default:
 			m_name = TheGameText->fetch("GUI:Closed");
@@ -254,12 +257,12 @@ Bool GameSlot::isHuman() const
 
 Bool GameSlot::isOccupied() const
 {
-	return m_state == SLOT_PLAYER || m_state == SLOT_EASY_AI || m_state == SLOT_MED_AI || m_state == SLOT_BRUTAL_AI;
+	return isHuman() || isAI();
 }
 
 Bool GameSlot::isAI() const
 {
-	return m_state == SLOT_EASY_AI || m_state == SLOT_MED_AI || m_state == SLOT_BRUTAL_AI;
+	return m_state == SLOT_EASY_AI || m_state == SLOT_MED_AI || m_state == SLOT_BRUTAL_AI || m_state == SLOT_COMPETITIVE_AI;
 }
 
 Bool GameSlot::isPlayer( AsciiString userName ) const
@@ -1031,6 +1034,8 @@ static AsciiString buildGameInfoAsciiString(const GameInfo& game, const AsciiStr
 				c = 'E';
 			else if (slot->getState() == SLOT_MED_AI)
 				c = 'M';
+			else if (slot->getState() == SLOT_COMPETITIVE_AI)
+				c = 'F';
 			else
 				c = 'H';
 			str.format("C%c,%d,%d,%d,%d:", c,
@@ -1450,6 +1455,11 @@ Bool ParseAsciiStringToGameInfo(GameInfo *game, AsciiString options)
 								{
 									newSlot[i].setState(SLOT_MED_AI);
 									//DEBUG_LOG(("ParseAsciiStringToGameInfo - Medium AI"));
+								}
+								break;
+								case 'F':
+								{
+									newSlot[i].setState(SLOT_COMPETITIVE_AI);
 								}
 								break;
 								case 'H':

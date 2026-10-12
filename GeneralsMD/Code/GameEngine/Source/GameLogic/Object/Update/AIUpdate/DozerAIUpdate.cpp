@@ -1671,7 +1671,7 @@ Object *DozerAIUpdate::construct( const ThingTemplate *what,
 	{
 
 		// AI has weaker restriction on building
-		Bool dozerIsAI = owningPlayer->getPlayerType() == PLAYER_COMPUTER;
+		Bool dozerIsAI = owningPlayer->getPlayerType() == PLAYER_COMPUTER && !owningPlayer->isCompetitiveAI();
 		if( dozerIsAI )
 		{
 
@@ -2428,7 +2428,8 @@ Real DozerAIUpdate::getBoredTime() const
 Real DozerAIUpdate::getBoredRange() const
 {
 	if (getObject()->getControllingPlayer() &&
-		getObject()->getControllingPlayer()->getPlayerType() == PLAYER_COMPUTER) {
+		getObject()->getControllingPlayer()->getPlayerType() == PLAYER_COMPUTER
+		&& !getObject()->getControllingPlayer()->isCompetitiveAI()) {
 		return TheAI->getAiData()->m_aiDozerBoredRadiusModifier*getDozerAIUpdateModuleData()->m_boredRange;
 	}
 	return getDozerAIUpdateModuleData()->m_boredRange;
