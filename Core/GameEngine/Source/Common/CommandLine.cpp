@@ -115,6 +115,16 @@ Int parseNoLogOrCrash(char *args[], int)
 
 //=============================================================================
 //=============================================================================
+// Set by -uncensored: ignore localized W3D model overrides (e.g. the German no-gore replacements).
+Bool g_ignoreLocalizedModels = FALSE;
+
+Int parseUncensored(char *args[], int)
+{
+	g_ignoreLocalizedModels = TRUE;
+
+	return 1;
+}
+
 Int parseWin(char *args[], int)
 {
 	TheWritableGlobalData->m_windowed = true;
@@ -441,6 +451,61 @@ Int parseReplay(char *args[], int num)
 	}
 	return 1;
 }
+
+#if RTS_ZEROHOUR
+Int parseJobThreads(char *args[], int num)
+{
+	if (num > 1)
+	{
+		TheWritableGlobalData->m_jobThreads = atoi(args[1]);
+	}
+	return 2;
+}
+
+Int parsePathfindPrefetch(char *args[], int num)
+{
+	TheWritableGlobalData->m_pathfindPrefetch = TRUE;
+	return 1;
+}
+
+Int parsePathfindNodeLimit(char *args[], int num)
+{
+	if (num > 1)
+	{
+		TheWritableGlobalData->m_pathfindNodeLimit = atoi(args[1]);
+	}
+	return 2;
+}
+
+Int parseReplayCRCLog(char *args[], int num)
+{
+	if (num > 1)
+	{
+		TheWritableGlobalData->m_replayCRCLog = args[1];
+	}
+	return 2;
+}
+
+Int parseReplayTraceObject(char *args[], int num)
+{
+	if (num > 1)
+	{
+		TheWritableGlobalData->m_replayTraceObject = atoi(args[1]);
+	}
+	return 2;
+}
+
+Int parseReplayCRCTrace(char *args[], int num)
+{
+	if (num > 3)
+	{
+		TheWritableGlobalData->m_replayCRCTrace = args[1];
+		TheWritableGlobalData->m_replayCRCTraceFrom = atoi(args[2]);
+		TheWritableGlobalData->m_replayCRCTraceTo = atoi(args[3]);
+	}
+	return 4;
+}
+#endif
 
 Int parseJobs(char *args[], int num)
 {
@@ -825,6 +890,27 @@ Int parseNoShaders(char *args[], int)
 	return 1;
 }
 
+// Shows the whole map: no shroud and no fog of war (Options.ini FogOfWar = no does the same). Only the drawing uses
+// this flag, the game logic keeps its own shroud, so games and replays stay the same.
+Int parseNoFog(char *args[], int)
+{
+	TheWritableGlobalData->m_shroudOn = FALSE;
+
+	return 1;
+}
+
+// Zoom-out limit (camera height), wins over Options.ini MaxCameraHeight.
+extern Real g_maxCameraHeightOverride;
+Int parseMaxZoom(char *args[], int num)
+{
+	if (num > 1)
+	{
+		g_maxCameraHeightOverride = (Real)atof(args[1]);
+		return 2;
+	}
+	return 1;
+}
+
 Int parseNoLogo(char *args[], int)
 {
 	TheWritableGlobalData->m_playIntro = FALSE;
@@ -1164,6 +1250,7 @@ Int parseClearDebugLevel(char *args[], int num)
 static CommandLineParam paramsForStartup[] =
 {
 	{ "-win", parseWin },
+	{ "-uncensored", parseUncensored },
 	{ "-fullscreen", parseNoWin },
 
 	// TheSuperHackers @feature helmutbuhler 11/04/2025
@@ -1196,12 +1283,30 @@ static CommandLineParam paramsForEngineInit[] =
 	{ "-noshellmap", parseNoShellMap },
 	{ "-noShellAnim", parseNoWindowAnimation }, // TheSuperHackers @tweak Is now available in Release builds.
 	{ "-xres", parseXRes },
+	{ "-noFog", parseNoFog },
+	{ "-maxZoom", parseMaxZoom },
 	{ "-yres", parseYRes },
 	{ "-fullVersion", parseFullVersion },
 	{ "-particleEdit", parseParticleEdit },
 	{ "-scriptDebug", parseScriptDebug },
 	{ "-playStats", parsePlayStats },
 	{ "-mod", parseMod },
+#if RTS_ZEROHOUR
+	// Worker threads of the game logic, overrides JobThreads of GameData.ini (0 = none).
+	{ "-jobThreads", parseJobThreads },
+	// Compute queued pathfinding searches ahead on the worker threads (PathfindPrefetch in GameData.ini).
+	{ "-pathfindPrefetch", parsePathfindPrefetch },
+	// <n>: nodes one pathfinding search may use, 0 = no limit (default). For testing; all players must use the same value.
+	{ "-pathfindNodeLimit", parsePathfindNodeLimit },
+	// With -replay: write the CRC of every check to this file and keep simulating after a mismatch,
+	// so two runs of the same replay can be compared.
+	{ "-replayCRCLog", parseReplayCRCLog },
+	// <file> <from> <to>: CRCs of the parts of the game state and of every object for every frame from..to,
+	// to find the frame and the object where two runs of a replay part ways.
+	{ "-replayCRCTrace", parseReplayCRCTrace },
+	// <id>: with -replayCRCTrace, write the position, path and pathfind requests of this one object instead.
+	{ "-replayTraceObject", parseReplayTraceObject },
+#endif
 	{ "-noshaders", parseNoShaders },
 	{ "-quickstart", parseQuickStart },
 	{ "-useWaveEditor", parseUseWaveEditor },

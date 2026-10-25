@@ -30,6 +30,13 @@
 
 #include "Common/LocalFileSystem.h"
 
+/**
+ * Loose game files (Data\Scripts\SkirmishScripts.scb, Data\Cursors, ...) are looked up relative to the working directory. When the game is started
+ * from another folder (for example the build output), they are looked up in the installed game next to the registered .big archives instead.
+ * Returns true and the full path when a relative file is missing here but exists in the installation.
+ */
+Bool Win32LocalFileSystem_FindInInstall(const Char *relativeFilename, AsciiString &fullPath);
+
 class Win32LocalFileSystem : public LocalFileSystem
 {
 public:

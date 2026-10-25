@@ -1,0 +1,73 @@
+[size=5][b]Command & Conquer: Generals - Zero Hour Reimagined[/b][/size]
+[i]by dement123[/i]
+
+A 64-bit version of Zero Hour with a new Vulkan renderer, modern effects, a stronger skirmish AI, a faster economy and smooth large battles. It runs on your own copy of the game and changes no original game files.
+
+[size=4][b]Features[/b][/size]
+
+[b]Graphics[/b]
+[list]
+[*]New native Vulkan renderer for a 64-bit game: stable on modern Windows and graphics cards
+[*]New water with waves, reflections, refraction, foam and depth colours
+[*]Real-time shadows from the sun of each map, ambient occlusion, bloom and anti-aliasing
+[*]Dynamic lights around explosions and moving cloud shadows
+[*]Starts fullscreen at the native resolution of your monitor (Full HD, 1440p, 4K, ultrawide)
+[*]Play-Original.bat keeps the classic look if you prefer it
+[/list]
+
+[b]Gameplay (Zero Hour)[/b]
+[list]
+[*]Faster economy: supply docks hold 10x more supplies
+[*]Lower unit and building costs (superweapons excluded) and faster building
+[*]Unit formations
+[*]A stronger Hard skirmish AI that expands, builds an army and attacks in waves
+[/list]
+
+[b]Performance and fixes[/b]
+[list]
+[*]Faster pathfinding: big 4v4 battles stay fluid, and units no longer pile up at cliff edges
+[*]The skirmish game speed slider works again
+[*]Unit voice sounds play at the right speed, the text cursor blinks normally
+[*]Radiation and toxin pools, shock waves and water ripples are visible again
+[*]Trees stay visible while scrolling and zooming, water edges are smooth
+[*]Many engine and AI fixes from the community code base
+[/list]
+
+[size=4][b]Optional files[/b][/size]
+[list]
+[*][b]HD Textures[/b] (1.8 GB): 5483 textures of units, infantry, buildings, civilian structures and effects upscaled 4x with AI (256 px to 1024 px)
+[*][b]No Fog / Far Zoom launchers[/b]: play with the whole map visible, with a farther camera zoom (750 instead of 450), or both
+[/list]
+All files work together. Install the main file first.
+
+[size=4][b]Requirements[/b][/size]
+[list]
+[*]Command & Conquer: Generals - Zero Hour 1.04 (EA app, Steam or disc), installed
+[*]Windows 10 or 11, 64-bit
+[*]A graphics card with a Vulkan 1.3 driver (NVIDIA GTX 900 or newer, AMD RX 400 or newer, Intel Arc or a recent iGPU)
+[/list]
+
+[size=4][b]Installation[/b][/size]
+[list=1]
+[*]Find your Zero Hour game folder: the one that contains [b]INIZH.big[/b] (use Browse local files in the EA app or Steam).
+[*]Open the main file, go into its [b]Zero Hour[/b] folder and copy its content (x64, Art, tools and the .bat files) into the game folder.
+[*]Start the game with [b]Play-Updated.bat[/b]. Do not start the .exe in the x64 folder directly.
+[*]Optional: copy the Art folder of the HD Textures into the game folder, and the .bat files of the No Fog / Far Zoom launchers.
+[/list]
+The full guide is in README-INSTALL.txt inside the main file. The base game Generals is supported as well (graphics and fixes only).
+
+[size=4][b]Multiplayer[/b][/size]
+LAN games work when every player uses this same version of the mod. Games with players on the original game are not possible, and replays only play back with the version that recorded them.
+
+[size=4][b]Uninstall[/b][/size]
+Delete the files you copied into the game folder (x64, tools, the .bat files and the mod files in Art\Textures). The original game files are never changed.
+
+[size=4][b]Credits[/b][/size]
+[list]
+[*][b]dement123[/b]: this version (gameplay, AI, pathfinding, fixes, HD textures); the code was written with Claude Code
+[*]The 64-bit Vulkan fork this version continues: github.com/JaChriCaeTob/ModernGeneralsZH
+[*]TheSuperHackers and the GeneralsGameCode community project
+[*]Electronic Arts for Command & Conquer: Generals and the release of its source code
+[*]DXVK (zlib license), FFmpeg (LGPL), miniaudio
+[/list]
+The game code is licensed under GPL v3 with EA's additional terms. The source code of this version is available as an optional download on this page.

@@ -468,7 +468,7 @@ DX8Caps::DeviceTypeIntel DX8Caps::Get_Intel_Device(unsigned device_id)
 
 DX8Caps::DX8Caps(
 	IDirect3D8* direct3d,
-	IDirect3DDevice8* D3DDevice,
+	GfxDevice* D3DDevice,
 	WW3DFormat display_format,
 	const D3DADAPTER_IDENTIFIER8& adapter_id)
 	:
@@ -513,15 +513,15 @@ void DX8Caps::Shutdown()
 //
 // ----------------------------------------------------------------------------
 
-void DX8Caps::Init_Caps(IDirect3DDevice8* D3DDevice)
+void DX8Caps::Init_Caps(GfxDevice* D3DDevice)
 {
-	D3DDevice->SetRenderState(D3DRS_SOFTWAREVERTEXPROCESSING,TRUE);
+	D3DDevice->SetRenderState(GFX_RS_SOFTWAREVERTEXPROCESSING,TRUE);
 	DX8CALL(GetDeviceCaps(&Caps));
 
 	if ((Caps.DevCaps&D3DDEVCAPS_HWTRANSFORMANDLIGHT)==D3DDEVCAPS_HWTRANSFORMANDLIGHT) {
 		SupportTnL=true;
 
-		D3DDevice->SetRenderState(D3DRS_SOFTWAREVERTEXPROCESSING,FALSE);
+		D3DDevice->SetRenderState(GFX_RS_SOFTWAREVERTEXPROCESSING,FALSE);
 		DX8CALL(GetDeviceCaps(&Caps));
 	} else {
 		SupportTnL=false;
@@ -750,7 +750,7 @@ void DX8Caps::Check_Render_To_Texture_Support(WW3DFormat display_format,const D3
 					caps.AdapterOrdinal,
 					caps.DeviceType,
 					d3d_display_format,
-					D3DUSAGE_RENDERTARGET,
+					GFX_USAGE_RENDERTARGET,
 					D3DRTYPE_TEXTURE,
 					WW3DFormat_To_D3DFormat(format)));
 			if (SupportRenderToTextureFormat[i]) {
@@ -795,7 +795,7 @@ void DX8Caps::Check_Depth_Stencil_Support(WW3DFormat display_format, const D3DCA
 					caps.AdapterOrdinal,
 					caps.DeviceType,
 					d3d_display_format,
-					D3DUSAGE_DEPTHSTENCIL,
+					GFX_USAGE_DEPTHSTENCIL,
 					D3DRTYPE_TEXTURE,
 					WW3DZFormat_To_D3DFormat(format)
 				)
@@ -1164,7 +1164,7 @@ void DX8Caps::Vendor_Specific_Hacks(const D3DADAPTER_IDENTIFIER8& adapter_id)
 
 	if (VendorId==VENDOR_VMWARE) {
 		// TheSuperHackers @bugfix Stubbjax 15/01/2026 Disable DOT3 support for VMWare's virtual GPU.
-		// The D3DTA_ALPHAREPLICATE modifier fails when passed to a D3DTOP_MULTIPLYADD operation.
+		// The GFX_TA_ALPHAREPLICATE modifier fails when passed to a GFX_TOP_MULTIPLYADD operation.
 		DXLOG(("Disabling DOT3 on VMWare\r\n"));
 		SupportDot3 = false;
 	}

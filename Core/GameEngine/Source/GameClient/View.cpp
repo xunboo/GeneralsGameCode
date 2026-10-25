@@ -27,6 +27,7 @@
 // Author: Michael S. Booth, February 2001
 
 #include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
+#include "Common/OptionPreferences.h"
 
 #include "Common/GameEngine.h"
 #include "Common/Xfer.h"
@@ -83,6 +84,9 @@ View::~View()
 {
 }
 
+Real g_originalMaxCameraHeight = 0.0f;		///< the game's own zoom-out limit, used by the main menu scene (it is composed for it)
+Real g_maxCameraHeightOverride = 0.0f;	///< command line -maxZoom, wins over Options.ini MaxCameraHeight (0 = not set)
+
 void View::init()
 {
 	m_width = DEFAULT_VIEW_WIDTH;
@@ -96,6 +100,24 @@ void View::init()
 	m_zoomLimited = TRUE;
 
 	m_zoom = 1.0f;
+	if (g_originalMaxCameraHeight <= 0.0f)
+		g_originalMaxCameraHeight = TheGlobalData->m_maxCameraHeight;
+	{
+		// zoom-out limit: command line -maxZoom or Options.ini key MaxCameraHeight (the game's own value is 310; this build allows 450 unless set)
+		OptionPreferences prefs;
+		OptionPreferences::const_iterator it = prefs.find("MaxCameraHeight");
+		Real maxHeight = it != prefs.end() ? (Real)atof(it->second.str()) : 450.0f;
+		if (g_maxCameraHeightOverride > 0.0f)
+			maxHeight = g_maxCameraHeightOverride;
+		if (maxHeight > TheGlobalData->m_minCameraHeight)
+			TheWritableGlobalData->m_maxCameraHeight = maxHeight;
+
+		// Options.ini FogOfWar = no shows the whole map like the command line -noFog. Only the drawing uses this flag,
+		// the game logic keeps its own shroud, so games and replays stay the same.
+		it = prefs.find("FogOfWar");
+		if (it != prefs.end() && stricmp(it->second.str(), "no") == 0)
+			TheWritableGlobalData->m_shroudOn = FALSE;
+	}
 	m_maxHeightAboveGround = TheGlobalData->m_maxCameraHeight;
 	m_minHeightAboveGround = TheGlobalData->m_minCameraHeight;
 	m_okToAdjustHeight = FALSE;

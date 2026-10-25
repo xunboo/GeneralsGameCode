@@ -868,6 +868,8 @@ void AISkirmishPlayer::processTeamBuilding()
  */
 void AISkirmishPlayer::doBaseBuilding()
 {
+	processHardExpansion();
+	processHardArmy();
 	if (m_player->getCanBuildBase()) {
 		// See if we are ready to start trying a structure.
 		if (!m_readyToBuildStructure) {

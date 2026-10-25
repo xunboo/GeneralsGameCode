@@ -477,7 +477,14 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message,
 					{
 						//restore mouse cursor to our custom version.
 						if (TheWin32Mouse)
+						{
+							// a Windows cursor can only be seen while the display counter of the cursor is not negative
+							if (TheWin32Mouse->getRedrawMode() == Mouse::RM_WINDOWS)
+							{
+								for (int guard = 0; ::ShowCursor(TRUE) < 0 && guard < 16; ++guard) {}
+							}
 							TheWin32Mouse->setCursor(TheWin32Mouse->getMouseCursor());
+						}
 					}
 				}
 				return 0;
@@ -596,8 +603,13 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message,
 			//-------------------------------------------------------------------------
 			case WM_SETCURSOR:
 			{
+				// Only the client area shows the game's cursor; borders and title bar keep the system cursors.
+				if (LOWORD(lParam) != HTCLIENT)
+					break;
 				if (TheWin32Mouse && (HWND)wParam == ApplicationHWnd)
 					TheWin32Mouse->setCursor(TheWin32Mouse->getMouseCursor());
+				else if (!TheWin32Mouse)
+					::SetCursor(::LoadCursor(nullptr, IDC_ARROW));	// before the mouse exists: a plain arrow instead of no cursor
 				return TRUE;	//tell Windows not to reset mouse cursor image to default.
 			}
 
@@ -944,6 +956,13 @@ Int APIENTRY WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
 	TheUnicodeStringCriticalSection = nullptr;
 	TheDmaCriticalSection = nullptr;
 	TheMemoryPoolCriticalSection = nullptr;
+
+#ifdef _WIN64
+	// The game has shut everything down by now, including the memory manager. The C runtime would still run the static
+	// destructors of the pool allocators (AutoPoolClass<...>::Allocator), which walk memory that no longer exists and crash
+	// on x64. The process is ending anyway, so leave without running them.
+	ExitProcess((UINT)exitcode);
+#endif
 
 	return exitcode;
 

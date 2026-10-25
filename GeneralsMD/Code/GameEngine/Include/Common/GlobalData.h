@@ -332,6 +332,39 @@ public:
 	Short m_firewallPortAllocationDelta; ///< the port allocation delta last detected.
 
 	Int m_baseValuePerSupplyBox;
+
+	// Block formations for big ground armies (AIGroup::friend_moveInFormation). Logic settings: they must be equal on all machines of a game.
+	Bool m_formationEnabled;			///< use block formations for player move orders at all
+	Int m_formationMinUnits;			///< groups with fewer movable ground units move the stock way
+	Real m_formationAspect;				///< width : depth of the block
+	Real m_formationGap;				///< free space between units, on top of their size
+
+	// Skirmish AI on hard difficulty (AISkirmishPlayer::processHardExpansion). Logic settings: they must be equal on all machines of a game.
+	Bool m_aiHardEnabled;
+	Int m_aiHardStartSeconds;			///< the AI starts expanding after this long
+	Int m_aiHardIntervalSeconds;		///< one expansion step at most this often
+	Int m_aiHardMoneyReserve;			///< money the AI keeps for units
+	Int m_aiHardWarFactories;
+	Int m_aiHardAirfields;
+	Int m_aiHardBarracks;
+	Int m_aiHardBlackMarkets;
+	Int m_aiHardDropZones;
+	Int m_aiHardInternetCenters;
+	Int m_aiHardSupplyCenters;
+	Int m_aiHardBaseDefenses;			///< defence structures around the base
+	Int m_aiHardSupplyDefenses;			///< defence structures around each supply center
+	Int m_aiHardHarvesterBonus;			///< percent more supply trucks per supply center
+	Int m_aiHardArmyWave;					///< units standing at home before the hard AI sends them out together (0 = off)
+	Bool m_logicProfile;				///< write logic_profile.log: where the time of a logic frame goes
+	Int m_jobThreads;					///< worker threads for the game logic, -1 = by the number of cores, 0 = none
+	Bool m_pathfindPrefetch;	///< compute queued searches ahead on the worker threads; same results either way, see Pathfinder::prefetchPaths()
+	Int m_pathfindNodeLimit;	///< -pathfindNodeLimit: nodes one search may use, 0 or less = no limit (default); changes game results
+	AsciiString m_replayCRCLog;		///< -replayCRCLog: file that gets every CRC of a replay simulation, which then runs on after a mismatch
+	AsciiString m_replayCRCTrace;	///< -replayCRCTrace: file that gets the CRCs of the parts of the game state for every frame of a range
+	UnsignedInt m_replayCRCTraceFrom;
+	UnsignedInt m_replayCRCTraceTo;
+	UnsignedInt m_replayTraceObject;	///< -replayTraceObject: write position, path and pathfinds of this object instead of all object CRCs
+	Int m_aiHardBaseExtra;				///< how far beyond the radius of the starting base the hard AI may build
 	Real m_BuildSpeed;
 	Real m_MinDistFromEdgeOfMapForBuild;
 	Real m_SupplyBuildBorder;

@@ -1020,6 +1020,7 @@ protected:
 	Bool friend_moveInfantryToPos( const Coord3D *pos, CommandSourceType cmdSource );
 	Bool friend_moveVehicleToPos( const Coord3D *pos, CommandSourceType cmdSource );
 	void friend_moveFormationToPos( const Coord3D *pos, CommandSourceType cmdSource );
+	Bool friend_moveInFormation( const Coord3D *pos, CommandSourceType cmdSource );	///< block formation for big ground groups (AIGroupFormation.cpp)
 	Bool friend_computeGroundPath( const Coord3D *pos, CommandSourceType cmdSource );
 
 private:

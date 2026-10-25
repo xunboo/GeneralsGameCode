@@ -38,6 +38,7 @@
 #include "Pathfinder/PathfindCellInfo.h"
 #include "Pathfinder/PathfindCellList.h"
 #include "Pathfinder/PathfindLayer.h"
+#include "Pathfinder/PathSearchContext.h"
 #include "Pathfinder/PathfindZoneManager.h"
 #include "Pathfinder/PathNode.h"
 #include "Pathfinder/ZoneBlock.h"
@@ -55,9 +56,7 @@ class PathfindCell;
 
 #define INFANTRY_MOVES_THROUGH_INFANTRY
 
-#if !RETAIL_COMPATIBLE_PATHFINDING
 #undef RETAIL_COMPATIBLE_PATHFINDING_ALLOCATION
-#endif
 
   typedef UnsignedShort zoneStorageType;
 
@@ -79,6 +78,31 @@ enum {MAX_WALL_PIECES = 128};
 enum { PATHFIND_QUEUE_LEN=512};
 
 struct TCheckMovementInfo;
+
+/**
+ * A search that AIUpdateInterface::doPathfind() is expected to start with. The pathfinder computes it ahead of time on a
+ * worker thread, and uses the result only when doPathfind() really asks for exactly this search and nothing the search
+ * looked at has changed in the meantime. So a wrong guess only costs time, never a different result.
+ */
+struct PathfindPrediction
+{
+	enum Kind { NONE, FIND_PATH, FIND_CLOSEST_PATH, FIND_SAFE_PATH };
+	Kind kind;
+	const LocomotorSet *locomotorSet;
+	Coord3D from;
+	Coord3D to;								///< destination, or the first repulsor for FIND_SAFE_PATH
+	Coord3D to2;							///< the second repulsor for FIND_SAFE_PATH
+	Bool blocked;
+	Real pathCostMultiplier;	///< or the repulsor radius for FIND_SAFE_PATH
+	ObjectID ignoreObstacleID;	///< the obstacle the pathfinder ignores during the search
+
+	PathfindPrediction() : kind(NONE), locomotorSet(nullptr), blocked(FALSE), pathCostMultiplier(0.0f), ignoreObstacleID(INVALID_ID)
+	{
+		from.zero();
+		to.zero();
+		to2.zero();
+	}
+};
 
 /**
  * The pathfinding services interface provides access to the 3 expensive path find calls:
@@ -156,6 +180,15 @@ public:
 		const Coord3D *to, ObjectID ignoreObject=INVALID_ID );  ///< Can we build any path at all between the locations	(terrain, buildings & units check - slower)
 
 	Bool queueForPath(ObjectID id);	 ///< The object wants to request a pathfind, so put it on the list to process.
+	void getPrefetchStats( Int &taken, Int &computed, Int &recomputed );	///< Counts since the last call, see prefetchPaths()
+
+	/// Searches of the logic thread by kind, for the profile log: number and time since the last call.
+	enum SearchKind { SEARCH_PATH, SEARCH_CLOSEST, SEARCH_ATTACK, SEARCH_PATCH, SEARCH_SAFE, SEARCH_KIND_COUNT };
+	void getSearchStats( Int counts[SEARCH_KIND_COUNT], double ms[SEARCH_KIND_COUNT] );
+	enum { SEARCH_TIME_BUCKETS = 5 };	///< under 1 ms, 1-5, 5-20, 20-50, 50 and more
+	void getSearchTimeBuckets( Int counts[SEARCH_TIME_BUCKETS], double ms[SEARCH_TIME_BUCKETS] );
+	/// Since the last call: searches that ran out of nodes, and findPath() calls that failed although the zones connect.
+	void getFailureStats( Int &limited, Int &failedPaths );
 	void processPathfindQueue(); ///< Process some or all of the queued pathfinds.
 	void forceMapRecalculation();	///< Force pathfind map recomputation. If region is given, only that area is recomputed
 
@@ -225,9 +258,6 @@ public:
 	Path *getDebugPath();
 	void setDebugPath( Path *debugpath );
 
-#if RETAIL_COMPATIBLE_PATHFINDING
-	void forceCleanCells();
-#endif
 	void cleanOpenAndClosedLists();
 
 	// Adjusts the destination to a spot near dest that is not occupied by other units.
@@ -345,6 +375,26 @@ protected:
 		Bool center, Int pathDiameter );	///< Work backwards from goal cell to construct final path
 	Path *buildHierarchicalPath( const Coord3D *fromPos, PathfindCell *goalCell);	///< Work backwards from goal cell to construct final path
 
+	/// A queued search computed ahead of time on a worker thread, see prefetchPaths().
+	struct PrefetchedPath
+	{
+		ObjectID objectID;
+		PathfindPrediction prediction;
+		Bool startTunneling;							///< tunneling flag of the main search context when the search started
+		Path *path;												///< the result, owned here until it is taken
+		Coord3D adjustedTo;								///< findClosestPath() moves its destination
+		Int cellsAllocated;								///< added to the frame budget when the result is taken
+		Bool endTunneling;
+		Bool isFallback;									///< computePath()'s findClosestPath() after the findPath() just before it failed
+		std::vector<UnsignedInt> readCells;	///< sorted indices of every cell the search looked at
+	};
+
+	void prefetchPaths( Int count );		///< Computes the likely searches of the next queued requests on the worker threads
+	void runPrefetchedSearch( PrefetchedPath &entry );
+	Path *takePrefetchedPath( PathfindPrediction::Kind kind, const Object *obj, const LocomotorSet &locomotorSet,
+		const Coord3D *from, Coord3D *to, const Coord3D *to2, Bool blocked, Real pathCostMultiplier, Bool &found );
+	void discardPrefetchedPaths();
+
 	void  prependCells( Path *path, const Coord3D *fromPos,
 																	PathfindCell *goalCell, Bool center ); ///< Add pathfind cells to a path.
 
@@ -366,18 +416,16 @@ private:
 	IRegion2D m_extent;														///< Grid extent limits
 	IRegion2D m_logicalExtent;										///< Logical grid extent limits
 
-	PathfindCellList m_openList;									///< Cells ready to be explored
-	PathfindCellList m_closedList;								///< Cells already explored
+	// The open and closed lists, the tunneling flag, the ignored obstacle and the cell count of the searches
+	// are in the PathSearchContext of the calling thread.
+	static __forceinline PathSearchContext &sc() { return PathSearchContext::current(); }
 
 	Bool m_isMapReady;														///< True if all cells of map have been classified
-	Bool m_isTunneling;														///< True if path started in an obstacle
 
 	Int m_frameToShowObstacles;										///< Time to redraw obstacles.  For debug output.
 
 	Coord3D debugPathPos;													///< Used for visual debugging
 	Path *debugPath;															///< Used for visual debugging
-
-	ObjectID m_ignoreObstacleID;									///< Ignore the given obstacle
 
 	PathfindZoneManager m_zoneManager;						///< Handles the pathfind zones.
 
@@ -394,7 +442,36 @@ private:
 	ObjectID			m_queuedPathfindRequests[PATHFIND_QUEUE_LEN];
 	Int						m_queuePRHead;
 	Int						m_queuePRTail;
-	Int						m_cumulativeCellsAllocated;
+
+	std::vector<PrefetchedPath> m_prefetched;			///< Results of prefetchPaths() not taken yet
+	std::vector<UnsignedInt> m_writtenCells;			///< Cells changed since prefetchPaths(); a result that read one of them is not used
+	Bool					m_trackCellReads;										///< True while prefetched searches run, so getCell() records what they read
+	Int						m_prefetchStats[3];									///< taken, computed, recomputed - for the log
+	Int						m_searchCounts[SEARCH_KIND_COUNT];
+	__int64				m_searchTicks[SEARCH_KIND_COUNT];
+	Int						m_bucketCounts[SEARCH_TIME_BUCKETS];
+	__int64				m_bucketTicks[SEARCH_TIME_BUCKETS];
+	Int						m_limitedSearches;
+	Int						m_failedPaths;
+
+	/// Adds the time of one search of the logic thread to the statistics.
+	class SearchTimer
+	{
+	public:
+		SearchTimer( Pathfinder *pathfinder, SearchKind kind, const Object *obj = nullptr, const Coord3D *from = nullptr, const Coord3D *to = nullptr );
+		~SearchTimer();
+		Int m_found;				///< for big_searches.log: 1 path found, 0 not, -1 not known
+		Int m_hierarchical;	///< for big_searches.log: 1 the coarse path over zone blocks was found, 0 not, -1 not known
+	private:
+		Int m_nodesAtStart;
+		Pathfinder *m_pathfinder;
+		SearchKind m_kind;
+		__int64 m_start;
+		const Object *m_obj;
+		Coord3D m_from;
+		Coord3D m_to;
+		Int m_limitHitsAtStart;
+	};
 
 #if RTS_ZEROHOUR && RETAIL_COMPATIBLE_CRC
 public:
@@ -405,7 +482,7 @@ public:
 
 inline void Pathfinder::setIgnoreObstacleID( ObjectID objID )
 {
-	m_ignoreObstacleID = objID;
+	sc().m_ignoreObstacleID = objID;
 }
 
 inline void Pathfinder::worldToGrid( const Coord3D *pos, ICoord2D *cellIndex )
@@ -462,10 +539,16 @@ inline PathfindCell *Pathfinder::getCell( PathfindLayerEnum layer, Int x, Int y 
 		if (layer > LAYER_GROUND && layer <= LAYER_LAST)
 		{
 			cell = m_layers[layer].getCell(x, y);
-			if (cell)
-				return cell;
 		}
-		return &m_map[x][y];
+		if (!cell)
+		{
+			cell = &m_map[x][y];
+		}
+		if (m_trackCellReads)
+		{
+			sc().noteCellRead(cell->getSearchIndex());
+		}
+		return cell;
 	}
 	else
 	{

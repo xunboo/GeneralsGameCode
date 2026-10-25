@@ -328,6 +328,29 @@ GlobalData* GlobalData::m_theOriginal = nullptr;
 	{ "MaxRoadTypes",								INI::parseInt,				nullptr,			offsetof( GlobalData, m_maxRoadTypes ) },
 
 	{ "ValuePerSupplyBox",					INI::parseInt,				nullptr,			offsetof( GlobalData, m_baseValuePerSupplyBox ) },
+	{ "FormationEnabled",					INI::parseBool,				nullptr,			offsetof( GlobalData, m_formationEnabled ) },
+	{ "FormationMinUnits",					INI::parseInt,				nullptr,			offsetof( GlobalData, m_formationMinUnits ) },
+	{ "FormationAspect",					INI::parseReal,				nullptr,			offsetof( GlobalData, m_formationAspect ) },
+	{ "FormationGap",						INI::parseReal,				nullptr,			offsetof( GlobalData, m_formationGap ) },
+	{ "AIHardEnabled",						INI::parseBool,				nullptr,			offsetof( GlobalData, m_aiHardEnabled ) },
+	{ "AIHardStartSeconds",					INI::parseInt,				nullptr,			offsetof( GlobalData, m_aiHardStartSeconds ) },
+	{ "AIHardIntervalSeconds",				INI::parseInt,				nullptr,			offsetof( GlobalData, m_aiHardIntervalSeconds ) },
+	{ "AIHardMoneyReserve",					INI::parseInt,				nullptr,			offsetof( GlobalData, m_aiHardMoneyReserve ) },
+	{ "AIHardWarFactories",					INI::parseInt,				nullptr,			offsetof( GlobalData, m_aiHardWarFactories ) },
+	{ "AIHardAirfields",					INI::parseInt,				nullptr,			offsetof( GlobalData, m_aiHardAirfields ) },
+	{ "AIHardBarracks",						INI::parseInt,				nullptr,			offsetof( GlobalData, m_aiHardBarracks ) },
+	{ "AIHardBlackMarkets",					INI::parseInt,				nullptr,			offsetof( GlobalData, m_aiHardBlackMarkets ) },
+	{ "AIHardDropZones",					INI::parseInt,				nullptr,			offsetof( GlobalData, m_aiHardDropZones ) },
+	{ "AIHardInternetCenters",				INI::parseInt,				nullptr,			offsetof( GlobalData, m_aiHardInternetCenters ) },
+	{ "AIHardSupplyCenters",				INI::parseInt,				nullptr,			offsetof( GlobalData, m_aiHardSupplyCenters ) },
+	{ "AIHardBaseDefenses",					INI::parseInt,				nullptr,			offsetof( GlobalData, m_aiHardBaseDefenses ) },
+	{ "AIHardSupplyDefenses",				INI::parseInt,				nullptr,			offsetof( GlobalData, m_aiHardSupplyDefenses ) },
+	{ "AIHardHarvesterBonus",				INI::parseInt,				nullptr,			offsetof( GlobalData, m_aiHardHarvesterBonus ) },
+	{ "AIHardArmyWave",					INI::parseInt,				nullptr,			offsetof( GlobalData, m_aiHardArmyWave ) },
+	{ "LogicProfile",					INI::parseBool,				nullptr,			offsetof( GlobalData, m_logicProfile ) },
+	{ "JobThreads",					INI::parseInt,				nullptr,			offsetof( GlobalData, m_jobThreads ) },
+	{ "PathfindPrefetch",		INI::parseBool,				nullptr,			offsetof( GlobalData, m_pathfindPrefetch ) },
+	{ "AIHardBaseExtra",				INI::parseInt,				nullptr,			offsetof( GlobalData, m_aiHardBaseExtra ) },
 
 	{ "AudioOn",										INI::parseBool,				nullptr,			offsetof( GlobalData, m_audioOn ) },
 	{ "MusicOn",										INI::parseBool,				nullptr,			offsetof( GlobalData, m_musicOn ) },
@@ -638,8 +661,15 @@ GlobalData::GlobalData()
 	m_chipSetType = 0;
 	m_headless = FALSE;
 	m_windowed = 0;
-	m_xResolution = DEFAULT_DISPLAY_WIDTH;
-	m_yResolution = DEFAULT_DISPLAY_HEIGHT;
+	// The desktop resolution of the primary monitor unless Options.ini or -xres/-yres say otherwise, Full HD if it is unknown.
+	// The program is DPI aware (app.manifest), so this is the real pixel size even with Windows scaling.
+	m_xResolution = ::GetSystemMetrics( SM_CXSCREEN );
+	m_yResolution = ::GetSystemMetrics( SM_CYSCREEN );
+	if (m_xResolution < DEFAULT_DISPLAY_WIDTH || m_yResolution < DEFAULT_DISPLAY_HEIGHT)
+	{
+		m_xResolution = 1920;
+		m_yResolution = 1080;
+	}
 	m_maxShellScreens = 0;
 	m_useCloudMap = FALSE;
 	m_use3WayTerrainBlends = 1;
@@ -784,6 +814,34 @@ GlobalData::GlobalData()
 	m_maxRoadTypes = 0;
 
 	m_baseValuePerSupplyBox = 100;
+	m_formationEnabled = TRUE;
+	m_formationMinUnits = 12;
+	m_formationAspect = 3.0f;
+	m_formationGap = 4.0f;
+	m_aiHardEnabled = TRUE;
+	m_aiHardStartSeconds = 120;
+	m_aiHardIntervalSeconds = 10;
+	m_aiHardMoneyReserve = 1500;
+	m_aiHardWarFactories = 5;
+	m_aiHardAirfields = 4;
+	m_aiHardBarracks = 4;
+	m_aiHardBlackMarkets = 5;
+	m_aiHardDropZones = 5;
+	m_aiHardInternetCenters = 1;
+	m_aiHardSupplyCenters = 3;
+	m_aiHardBaseDefenses = 12;
+	m_aiHardSupplyDefenses = 4;
+	m_aiHardHarvesterBonus = 100;
+	m_aiHardArmyWave = 25;
+	m_aiHardBaseExtra = 600;
+	m_logicProfile = TRUE;
+	m_jobThreads = -1;
+	// Off for now: most of the time goes into a few long searches, so the threads gain less than the bookkeeping costs.
+	m_pathfindPrefetch = FALSE;
+	m_pathfindNodeLimit = -1;
+	m_replayCRCTraceFrom = 0;
+	m_replayCRCTraceTo = 0;
+	m_replayTraceObject = 0;
 
 	m_audioOn = TRUE;
 	m_musicOn = TRUE;

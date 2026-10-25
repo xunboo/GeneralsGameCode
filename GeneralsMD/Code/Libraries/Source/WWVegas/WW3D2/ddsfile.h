@@ -25,7 +25,7 @@
 #include "WWLib/wwstring.h"
 #include "WWMath/vector3.h"
 
-struct IDirect3DSurface8;
+#include "gfx_d3d8_map.h"
 struct IDirect3DVolume8;
 
 // ----------------------------------------------------------------------------
@@ -138,7 +138,7 @@ struct LegacyDDSURFACEDESC2 {
 	};
 	unsigned AlphaBitDepth;
 	unsigned Reserved;
-	void* Surface;
+	unsigned Surface;				// was a pointer in DX7 (4 bytes); keep the on-disk layout on 64-bit
 	union
 	{
 		LegacyDDCOLORKEY CKDestOverlay;
@@ -151,6 +151,8 @@ struct LegacyDDSURFACEDESC2 {
 	LegacyDDSCAPS2 Caps;
 	unsigned TextureStage;
 };
+
+static_assert(sizeof(LegacyDDSURFACEDESC2) == 124, "DDS file header layout must match the on-disk size");
 
 
 enum DDSType
@@ -215,7 +217,7 @@ public:
 	DDSType Get_Type() const { return Type; }
 
 	// Copy pixels to the destination surface.
-	void Copy_Level_To_Surface(unsigned level,IDirect3DSurface8* d3d_surface,const Vector3& hsv_shift=Vector3(0.0f,0.0f,0.0f));
+	void Copy_Level_To_Surface(unsigned level,GfxSurface* d3d_surface,const Vector3& hsv_shift=Vector3(0.0f,0.0f,0.0f));
 	void Copy_Level_To_Surface(
 		unsigned level,
 		WW3DFormat dest_format,

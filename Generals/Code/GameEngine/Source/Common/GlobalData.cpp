@@ -636,8 +636,15 @@ GlobalData::GlobalData()
 	m_chipSetType = 0;
 	m_headless = FALSE;
 	m_windowed = 0;
-	m_xResolution = DEFAULT_DISPLAY_WIDTH;
-	m_yResolution = DEFAULT_DISPLAY_HEIGHT;
+	// The desktop resolution of the primary monitor unless Options.ini or -xres/-yres say otherwise, Full HD if it is unknown.
+	// The program is DPI aware (app.manifest), so this is the real pixel size even with Windows scaling.
+	m_xResolution = ::GetSystemMetrics( SM_CXSCREEN );
+	m_yResolution = ::GetSystemMetrics( SM_CYSCREEN );
+	if (m_xResolution < DEFAULT_DISPLAY_WIDTH || m_yResolution < DEFAULT_DISPLAY_HEIGHT)
+	{
+		m_xResolution = 1920;
+		m_yResolution = 1080;
+	}
 	m_maxShellScreens = 0;
 	m_useCloudMap = FALSE;
 	m_use3WayTerrainBlends = 1;

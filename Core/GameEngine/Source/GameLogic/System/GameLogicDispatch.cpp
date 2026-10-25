@@ -32,6 +32,7 @@
 
 #include "Common/CRCDebug.h"
 #include "Common/FramePacer.h"
+#include "Common/OptionPreferences.h"
 #include "Common/GameAudio.h"
 #include "Common/GameEngine.h"
 #include "Common/GlobalData.h"
@@ -877,15 +878,33 @@ bool GameLogic::onNewGame(MAYBE_UNUSED GameMessage *msg)
 	if ( msg->getArgumentCount() >= 3 )
 		rankPoints = msg->getArgument( 2 )->integer;
 
+	// The game speed of the skirmish menu (15-60, 1000 = as fast as possible) was a render fps limit, and the logic
+	// stepped once per render update. The logic now runs at its own rate (see FramePacer::getActualLogicTimeScaleFps),
+	// so the speed sets the logic rate directly. Games without a speed run at the normal rate.
+	Int logicFps = LOGICFRAMES_PER_SECOND;
 	if ( msg->getArgumentCount() >= 4 )
 	{
 		Int maxFPS = msg->getArgument( 3 )->integer;
 		if (maxFPS < 1 || maxFPS > 1000)
 			maxFPS = TheGlobalData->m_framesPerSecondLimit;
-		DEBUG_LOG(("Setting max FPS limit to %d FPS", maxFPS));
-		TheFramePacer->setFramesPerSecondLimit(maxFPS);
-		TheWritableGlobalData->m_useFpsLimit = true;
+		if (maxFPS >= 1)
+			logicFps = maxFPS;
+		DEBUG_LOG(("Setting game speed to %d logic frames per second", logicFps));
+		{
+			// A skirmish start must not undo Options.ini FPSLimit = no (this flag is global and would stay on in the menus too).
+			OptionPreferences optionPref;
+			if (!optionPref.isFPSLimitDisabledByUser())
+			{
+				TheWritableGlobalData->m_useFpsLimit = true;
+				// The logic steps at most once per render update, so a render limit below the speed would slow the game down.
+				TheFramePacer->setFramesPerSecondLimit(max(maxFPS, TheGlobalData->m_framesPerSecondLimit));
+			}
+		}
 	}
+	// GENERALS_SHOTFAST plays replays as fast as they render, for the timed screenshots (see W3DDisplay.cpp)
+	if (gameMode == GAME_REPLAY && getenv("GENERALS_SHOTFAST"))
+		logicFps = 1000;
+	TheFramePacer->setLogicTimeScaleFps(logicFps);
 
 	// prepare for new game
 	prepareNewGame( gameMode, diff, rankPoints );

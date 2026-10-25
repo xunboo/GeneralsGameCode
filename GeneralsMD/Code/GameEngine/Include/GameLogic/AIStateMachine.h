@@ -159,6 +159,8 @@ public:
 
 	StateReturnType setTemporaryState( StateID newStateID, Int frameLimitCoount );			///< change the temporary state of the machine, and number of frames limit.
 	StateID getTemporaryState() const {return m_temporaryState?m_temporaryState->getID():INVALID_STATE_ID;}
+	Bool isTemporaryState( const State *state ) const { return state != nullptr && m_temporaryState == state; }
+	void endTemporaryState();																	///< exits the temporary state now, the current state goes on next update
 
 public:	// overrides.
 	virtual StateReturnType updateStateMachine() override;				///< run one step of the machine

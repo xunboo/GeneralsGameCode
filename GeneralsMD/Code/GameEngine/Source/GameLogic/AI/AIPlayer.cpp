@@ -207,6 +207,10 @@ void AIPlayer::checkForSupplyCenter( BuildListInfo *info, Object *bldg )
 				}
 				if (difficulty == DIFFICULTY_HARD) {
 					desiredGatherers = resInfo->m_hard;
+					if (isSkirmishAI() && TheGlobalData->m_aiHardEnabled) {
+						// hard skirmish AI: more supply trucks per supply center (rounded up)
+						desiredGatherers += (desiredGatherers * TheGlobalData->m_aiHardHarvesterBonus + 99) / 100;
+					}
 				}
 			}
 			resInfo = resInfo->m_next;

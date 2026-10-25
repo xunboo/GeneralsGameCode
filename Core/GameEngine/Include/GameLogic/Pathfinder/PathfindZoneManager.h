@@ -55,6 +55,7 @@ public:
 	zoneStorageType getEffectiveTerrainZone(zoneStorageType zone) const;
 
 	void getExtent(ICoord2D &extent) const {extent = m_zoneBlockExtent;}
+	Int getNumZoneBlocks() const {return m_zoneBlockExtent.x*m_zoneBlockExtent.y;}
 
 	/// return zone relative the the block zone that this cell resides in.
 	zoneStorageType getBlockZone(LocomotorSurfaceTypeMask acceptableSurfaces, Bool crusher, Int cellX, Int cellY, PathfindCell **map) const;

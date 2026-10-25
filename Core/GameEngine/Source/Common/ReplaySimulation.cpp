@@ -100,6 +100,10 @@ int ReplaySimulation::simulateReplaysInThisProcess(const std::vector<AsciiString
 				if (TheRecorder->sawCRCMismatch())
 				{
 					numErrors++;
+#if RTS_ZEROHOUR
+					if (!TheGlobalData->m_replayCRCLog.isEmpty())
+						continue; // the log is wanted to the end
+#endif
 					break;
 				}
 			}

@@ -24,26 +24,23 @@ class PathfindCellInfo
 {
 	friend class PathfindCell;
 public:
-#if RETAIL_COMPATIBLE_PATHFINDING
-	static void forceCleanPathFindCellInfos();
-#endif
 	static void allocateCellInfos();
 	static void releaseCellInfos();
 
 	static PathfindCellInfo * getACellInfo(PathfindCell *cell, const ICoord2D &pos);
 	static void releaseACellInfo(PathfindCellInfo *theInfo);
+	static Int getNumAllocated() {return s_numAllocated;}
 
 protected:
+	static Int s_numAllocated;
 	static PathfindCellInfo *s_infoArray;
 	static PathfindCellInfo *s_firstFree;							///<
 
 
-	PathfindCellInfo *m_nextOpen, *m_prevOpen;						///< for A* "open" list, shared by closed list
+	// The A* search state is in PathSearchNode, see PathSearchContext.h. This record only holds the units on the cell.
 
-	PathfindCellInfo *m_pathParent;												///< "parent" cell from pathfinder
+	PathfindCellInfo *m_nextFree;													///< free list link while in the pool
 	PathfindCell *m_cell;															///< Cell this info belongs to currently.
-
-	UnsignedShort m_totalCost, m_costSoFar;	///< cost estimates for A* search
 
 	/// have to include cell's coordinates, since cells are often accessed via pointer only
 	ICoord2D m_pos;
@@ -58,7 +55,4 @@ protected:
 	UnsignedInt m_blockedByAlly:1;///< True if this cell is blocked by an allied unit.
 	UnsignedInt m_obstacleIsFence:1;///< True if occupied by a fence.
 	UnsignedInt m_obstacleIsTransparent:1;///< True if obstacle is transparent (undefined if obstacleid is invalid)
-	/// @todo Do we need both mark values in this cell?  Can't store a single value and compare it?
-	UnsignedInt m_open:1;													///< place for marking this cell as on the open list
-	UnsignedInt m_closed:1;												///< place for marking this cell as on the closed list
 };

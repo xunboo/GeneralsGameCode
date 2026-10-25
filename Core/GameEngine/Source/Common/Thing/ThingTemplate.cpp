@@ -535,7 +535,7 @@ void ThingTemplate::parseModuleName(INI* ini, void *instance, void* store, const
 {
 	ThingTemplate* self = (ThingTemplate*)instance;
 	ModuleInfo* mi = (ModuleInfo*)store;
-	ModuleType type = (ModuleType)(UnsignedInt)userData;
+	ModuleType type = (ModuleType)(UnsignedInt)(uintptr_t)userData;
 	const char* token = ini->getNextToken();
 	AsciiString tokenStr = token;
 
@@ -642,7 +642,7 @@ void ThingTemplate::parseModuleName(INI* ini, void *instance, void* store, const
 //-------------------------------------------------------------------------------------------------
 void ThingTemplate::parseIntList(INI* ini, void *instance, void* store, const void* userData)
 {
-	Int numberEntries = (Int)userData;
+	Int numberEntries = (Int)(intptr_t)userData;
 	Int *intList = (Int*)store;
 
 	for( Int intIndex = 0; intIndex < numberEntries; intIndex ++ )
@@ -1568,6 +1568,9 @@ Int ThingTemplate::calcCostToBuild( const Player* player) const
 	// changePercent format is "-.2 equals 20% cheaper"
 	Real factionModifier = 1 + player->getProductionCostChangePercent( getName() );
 	factionModifier *= player->getProductionCostChangeBasedOnKindOf( m_kindof );
+	// everything costs half, except the superweapon structures (particle cannon, scud storm, nuclear missile)
+	if (!isKindOf( KINDOF_FS_SUPERWEAPON ))
+		factionModifier *= 0.5f;
 	return getBuildCost() * factionModifier * player->getHandicap()->getHandicap(Handicap::BUILDCOST, this);
 }
 
@@ -1625,6 +1628,16 @@ Int ThingTemplate::calcTimeToBuild( const Player* player) const
 					buildTime *= factoryMult;
 			}
 		}
+	}
+
+	// Everything is built and produced this much faster than the INI build time says (units from factories and buildings by dozers alike).
+	// A logic setting: it has to be the same on every machine of a multiplayer game.
+	const Real BUILD_SPEED_FACTOR = 1.5f;
+	if (buildTime > 1)
+	{
+		buildTime = (Int)((Real)buildTime / BUILD_SPEED_FACTOR);
+		if (buildTime < 1)
+			buildTime = 1;
 	}
 
 	return(buildTime);

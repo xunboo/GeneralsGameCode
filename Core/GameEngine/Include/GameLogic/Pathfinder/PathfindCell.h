@@ -19,20 +19,18 @@
 #pragma once
 
 #include "PathfindCellInfo.h"
+#include "PathSearchContext.h"
 
 class Object;
-class PathfindCellList;
 
 typedef UnsignedShort zoneStorageType;
-
-#if !RETAIL_COMPATIBLE_PATHFINDING
-#undef RETAIL_COMPATIBLE_PATHFINDING_ALLOCATION
-#endif
 
 /**
  * This represents one cell in the pathfinding grid.
  * These cells categorize the world into idealized cellular states,
  * and are also used for efficient A* pathfinding.
+ * The A* state of the cell is not stored here but in a PathSearchNode of the current PathSearchContext,
+ * so the map itself is only read by a search. The units on the cell are in m_info.
  * @todo Optimize memory usage of pathfind grid.
  */
 class PathfindCell
@@ -73,11 +71,6 @@ public:
 	Bool isAircraftGoal() const {return m_aircraftGoal != 0;}
 
 	Bool isObstaclePresent( ObjectID objID ) const;					///< return true if the given object ID is registered as an obstacle in this cell
-#if RETAIL_COMPATIBLE_PATHFINDING_ALLOCATION
-	// TheSuperHackers @info isObstructionInvalid() and clearObstruction() only used during retail compatible pathfinding failover cleanup
-	Bool isObstructionInvalid() const { return m_obstacleID != INVALID_ID && m_info == nullptr && (m_type == CELL_OBSTACLE || m_type == CELL_IMPASSABLE); }
-	void clearObstruction() { m_type = CELL_CLEAR; m_obstacleID = INVALID_ID; m_obstacleIsFence = false; m_obstacleIsTransparent = false; }
-#endif
 
 	inline Bool isObstacleTransparent() const;
 	inline Bool isObstacleFence() const;
@@ -89,22 +82,12 @@ public:
 
 	UnsignedInt costSoFar( PathfindCell *parent );
 
-#if RETAIL_COMPATIBLE_PATHFINDING
-	// Forward insertion sort that is 100% retail compatible
-	void forwardInsertionSortRetailCompatible(PathfindCellList& list);
-#endif
-
-	// Forward insertion sort, in ascending cost order
-	void forwardInsertionSort(PathfindCellList& list);
-
-	// Reverse insertion sort, in ascending cost order
-	void reverseInsertionSort(PathfindCellList& list);
 
 	/// put self on "open" list in ascending cost order
-	void putOnSortedOpenList( PathfindCellList &list );
+	void putOnSortedOpenList( PathfindOpenList &list );
 
 	/// remove self from "open" list
-	void removeFromOpenList( PathfindCellList &list );
+	void removeFromOpenList( PathfindOpenList &list );
 
 	/// put self on "closed" list, return new list
 	void putOnClosedList( PathfindCellList &list );
@@ -115,42 +98,46 @@ public:
 	/// remove all cells from closed list.
 	static Int releaseClosedList( PathfindCellList &list );
 
-	/// remove all cells from closed list.
-	static Int releaseOpenList( PathfindCellList &list );
+	/// remove all cells from open list.
+	static Int releaseOpenList( PathfindOpenList &list );
 
-	inline PathfindCell *getNextOpen() {return m_info->m_nextOpen?m_info->m_nextOpen->m_cell: nullptr;}
-	inline PathfindCell *getPrevOpen() {return m_info->m_prevOpen?m_info->m_prevOpen->m_cell: nullptr;}
+	__forceinline PathfindCell *getNextOpen() const {const PathSearchNode *next = searchNode().m_nextOpen; return next ? next->m_cell : nullptr;}
+	__forceinline PathfindCell *getPrevOpen() const {const PathSearchNode *prev = searchNode().m_prevOpen; return prev ? prev->m_cell : nullptr;}
 
-	inline UnsignedShort getXIndex() const {return m_info->m_pos.x;}
-	inline UnsignedShort getYIndex() const {return m_info->m_pos.y;}
+	__forceinline UnsignedShort getXIndex() const;
+	__forceinline UnsignedShort getYIndex() const;
 
 	inline Bool isBlockedByAlly() const;
 	inline void setBlockedByAlly(Bool blocked);
 
-	inline Bool getOpen() const {return m_info->m_open;}
-	inline Bool getClosed() const {return m_info->m_closed;}
-	inline UnsignedInt getCostSoFar() const {return m_info->m_costSoFar;}
-	inline UnsignedInt getTotalCost() const {return m_info->m_totalCost;}
+	__forceinline Bool getOpen() const {const PathSearchNode *node = activeSearchNode(); return node && node->m_open;}
+	__forceinline Bool getClosed() const {const PathSearchNode *node = activeSearchNode(); return node && node->m_closed;}
+	__forceinline UnsignedInt getCostSoFar() const {const PathSearchNode *node = activeSearchNode(); return node ? node->m_costSoFar : 0;}
+	__forceinline UnsignedInt getTotalCost() const {const PathSearchNode *node = activeSearchNode(); return node ? node->m_totalCost : 0;}
 
-	inline UnsignedInt getTotalCostDifference(PathfindCell& other) const;
-
-	inline void setCostSoFar(UnsignedInt cost) { if( m_info ) m_info->m_costSoFar = cost;}
-	inline void setTotalCost(UnsignedInt cost) { if( m_info ) m_info->m_totalCost = cost;}
+	__forceinline void setCostSoFar(UnsignedInt cost) { PathSearchNode *node = activeSearchNode(); if( node ) node->m_costSoFar = cost;}
+	__forceinline void setTotalCost(UnsignedInt cost) { PathSearchNode *node = activeSearchNode(); if( node ) node->m_totalCost = cost;}
 
 	void setParentCell(PathfindCell* parent);
 	void clearParentCell();
 	void setParentCellHierarchical(PathfindCell* parent);
-	inline PathfindCell* getParentCell() const {return m_info ? m_info->m_pathParent ? m_info->m_pathParent->m_cell : nullptr : nullptr;}
+	__forceinline PathfindCell* getParentCell() const {const PathSearchNode *node = activeSearchNode(); return node ? node->m_parent : nullptr;}
 
 	Bool startPathfind( PathfindCell *goalCell );
 	Bool getPinched() const {return m_pinched;}
-	void setPinched(Bool pinch) {m_pinched = pinch;	}
+	void setPinched(Bool pinch) {noteWrite(); m_pinched = pinch;	}
 
-	Bool allocateInfo(const ICoord2D &pos);
-	void releaseInfo();
-	Bool hasInfo() const {return m_info!=nullptr;}
+	Bool allocateInfo(const ICoord2D &pos);	///< Starts the search node of this cell in the current search
+	void releaseInfo();											///< Ends the search node of this cell, unless it is still on a list
+	__forceinline Bool hasInfo() const {return activeSearchNode()!=nullptr;}	///< True when the cell takes part in the current search
+
+	UnsignedInt getSearchIndex() const {return m_searchIndex;}
+	static void resetSearchIndices() {s_numSearchCells = 0;}
+	static void assignSearchIndices(PathfindCell *cells, Int count);	///< Gives each cell of a newly allocated block its own node index
+	static UnsignedInt getNumSearchCells() {return s_numSearchCells;}
+	static void setWriteLog(std::vector<UnsignedInt> *log) {s_writeLog = log;}	///< While set, every change of a cell adds its index to the log
 	zoneStorageType getZone() const {return m_zone;}
-	void setZone(zoneStorageType zone) {m_zone = zone;}
+	void setZone(zoneStorageType zone) {noteWrite(); m_zone = zone;}
 	void setGoalUnit(ObjectID unit, const ICoord2D &pos );
 	void setGoalAircraft(ObjectID unit, const ICoord2D &pos );
 	void setPosUnit(ObjectID unit, const ICoord2D &pos );
@@ -160,15 +147,42 @@ public:
 
 	inline ObjectID getObstacleID() const;
 
-	void setLayer( PathfindLayerEnum layer ) { m_layer = layer; }	///< set the cell layer
+	void setLayer( PathfindLayerEnum layer ) { noteWrite(); m_layer = layer; }	///< set the cell layer
 	PathfindLayerEnum getLayer() const { return (PathfindLayerEnum)m_layer; }				///< get the cell layer
 
-	void setConnectLayer( PathfindLayerEnum layer ) { m_connectsToLayer = layer; }	///< set the cell layer	connect id
+	void setConnectLayer( PathfindLayerEnum layer ) { noteWrite(); m_connectsToLayer = layer; }	///< set the cell layer	connect id
 	PathfindLayerEnum getConnectLayer() const { return (PathfindLayerEnum)m_connectsToLayer; }				///< get the cell layer connect id
 
 private:
+	Bool allocatePersistentInfo(const ICoord2D &pos);	///< Info record holding the units on this cell
+	void releasePersistentInfo();
+
+	__forceinline PathSearchNode &searchNode() const {return PathSearchContext::current().getNode(m_searchIndex);}
+#if PATHFIND_LEGACY_NODE_LIFETIME
+	// The node is in use whenever the original pathfinder would have had a PathfindCellInfo on this cell.
+	__forceinline PathSearchNode *activeSearchNode() const {return (m_info || m_searchInfo) ? &searchNode() : nullptr;}
+#else
+	__forceinline PathSearchNode *activeSearchNode() const
+	{
+		PathSearchContext &context = PathSearchContext::current();
+		return context.isNodeActive(m_searchIndex) ? &context.getNode(m_searchIndex) : nullptr;
+	}
+#endif
+
+	__forceinline void noteWrite() const {if (s_writeLog) s_writeLog->push_back(m_searchIndex);}
+
+	static UnsignedInt s_numSearchCells;
+	static std::vector<UnsignedInt> *s_writeLog;
+#if PATHFIND_LEGACY_NODE_LIFETIME
+	static Int s_numSearchInfos;							///< Records the original pathfinder would have taken from the pool for searches
+#endif
+
 	PathfindCellInfo *m_info;
+	UnsignedInt m_searchIndex;                ///< index of this cell's node in a PathSearchContext
 	ObjectID m_obstacleID;	                  ///< the object ID who overlaps this cell
+#if PATHFIND_LEGACY_NODE_LIFETIME
+	UnsignedInt m_searchInfo : 1;             ///< The original pathfinder would have a search record on this cell, see s_numSearchInfos
+#endif
 	UnsignedInt m_blockedByAlly : 1;          ///< True if this cell is blocked by an allied unit.
 	UnsignedInt m_obstacleIsFence : 1;        ///< True if occupied by a fence.
 	UnsignedInt m_obstacleIsTransparent : 1;  ///< True if obstacle is transparent (undefined if obstacleid is invalid)
@@ -184,3 +198,15 @@ private:
 };
 
 typedef PathfindCell *PathfindCellP;
+
+__forceinline UnsignedShort PathfindCell::getXIndex() const
+{
+	const PathSearchNode *node = activeSearchNode();
+	return node ? node->m_pos.x : m_info->m_pos.x;
+}
+
+__forceinline UnsignedShort PathfindCell::getYIndex() const
+{
+	const PathSearchNode *node = activeSearchNode();
+	return node ? node->m_pos.y : m_info->m_pos.y;
+}

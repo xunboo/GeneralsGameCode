@@ -201,6 +201,7 @@ public:
 	/// Called when the view changes, and sort key needs to be recalculated.
 	/// Normally sortKey gets calculated when a tree becomes visible.
 	void doFullUpdate() {m_updateAllKeys = true;};
+	static void setMirrorPass(Bool mirror) {s_mirrorPass = mirror;} ///< The water draws its reflection: keep the culling of the main view.
 	void setIsTerrain() {m_isTerrainPass = true;}; ///< Terrain calls this to tell trees to draw.
 	Bool needToDraw() {return m_isTerrainPass;};
 
@@ -238,6 +239,9 @@ private:
 	Bool		m_anythingChanged;	///< Set to true if visibility or sorting changed.
 	Bool		m_anyPushChanged;		///< Set to true if push aside is active.
 	Bool		m_updateAllKeys;  ///< Set to true when the view changes.
+	Matrix3D m_cullTransform;	///< Camera of the last culling, see drawTrees()
+	Bool		m_cullTransformValid;
+	static Bool s_mirrorPass;
 	Bool		m_initialized;		///< True if the subsystem initialized.
 	Bool		m_isTerrainPass;  ///< True if the terrain was drawn in this W3D scene render pass.
 	Bool		m_needToUpdateTexture; ///< True if we need to update the texture.

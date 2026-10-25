@@ -33,6 +33,70 @@
 #include "Win32Device/Common/Win32LocalFileSystem.h"
 #include "Win32Device/Common/Win32LocalFile.h"
 #include <io.h>
+#include "Common/Registry.h"
+
+namespace
+{
+// The folder of the installed game that holds the loose "Data" files: the first registered install folder (or the game folder below it)
+// that contains Data\Scripts\SkirmishScripts.scb. Empty when there is none.
+const AsciiString &installDataRoot()
+{
+	static AsciiString root;
+	static Bool searched = FALSE;
+	if (searched)
+		return root;
+	searched = TRUE;
+
+	AsciiString bases[2];
+	GetStringFromRegistry("", "InstallPath", bases[0]);
+	GetStringFromGeneralsRegistry("", "InstallPath", bases[1]);
+	for (Int i = 0; i < 2 && root.isEmpty(); ++i)
+	{
+		AsciiString base = bases[i];
+		if (base.isEmpty())
+			continue;
+		const char last = base.getCharAt(base.getLength() - 1);
+		if (last != '\\' && last != '/')
+			base.concat('\\');
+
+		const char *subFolders[] = { "", "Command and Conquer Generals Zero Hour\\", "ZH_Generals\\" };
+		for (const char *sub : subFolders)
+		{
+			AsciiString candidate = base;
+			candidate.concat(sub);
+			AsciiString probe = candidate;
+			probe.concat("Data\\Scripts\\SkirmishScripts.scb");
+			if (_access(probe.str(), 0) == 0)
+			{
+				root = candidate;
+				break;
+			}
+		}
+	}
+	return root;
+}
+}
+
+Bool Win32LocalFileSystem_FindInInstall(const Char *relativeFilename, AsciiString &fullPath)
+{
+	// only the loose "Data\..." files of the game, never absolute paths or user files
+	if (!relativeFilename || _strnicmp(relativeFilename, "data\\", 5) != 0 && _strnicmp(relativeFilename, "data/", 5) != 0)
+		return FALSE;
+	if (_access(relativeFilename, 0) == 0)
+		return FALSE;
+
+	const AsciiString &root = installDataRoot();
+	if (root.isEmpty())
+		return FALSE;
+
+	AsciiString candidate = root;
+	candidate.concat(relativeFilename);
+	if (_access(candidate.str(), 0) != 0)
+		return FALSE;
+
+	fullPath = candidate;
+	return TRUE;
+}
 
 Win32LocalFileSystem::Win32LocalFileSystem() : LocalFileSystem()
 {
@@ -70,6 +134,10 @@ File * Win32LocalFileSystem::openFile(const Char *filename, Int access, size_t b
 
 	// TheSuperHackers @fix Mauller 21/04/2025 Create new file handle when necessary to prevent memory leak
 	Win32LocalFile *file = newInstance( Win32LocalFile );
+
+	AsciiString installPath;
+	if (!(access & File::WRITE) && Win32LocalFileSystem_FindInInstall(filename, installPath))
+		filename = installPath.str();
 
 	if (file->open(filename, access, bufferSize) == FALSE) {
 		deleteInstance(file);
@@ -120,7 +188,8 @@ Bool Win32LocalFileSystem::doesFileExist(const Char *filename) const
 		return TRUE;
 	}
 
-	return FALSE;
+	AsciiString installPath;
+	return Win32LocalFileSystem_FindInInstall(filename, installPath);
 }
 
 void Win32LocalFileSystem::getFileListInDirectory(const AsciiString& currentDirectory, const AsciiString& originalDirectory, const AsciiString& searchName, FilenameList & filenameList, Bool searchSubdirectories) const

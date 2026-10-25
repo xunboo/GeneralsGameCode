@@ -861,6 +861,10 @@ StateReturnType AIStateMachine::updateStateMachine()
 	{
 		// execute this state
 		StateReturnType status = m_temporaryState->update();
+		if (m_temporaryState == nullptr) {
+			// The state ended itself (endTemporaryState()), the current state goes on next frame.
+			return STATE_CONTINUE;
+		}
 		if (m_temporaryStateFramEnd < TheGameLogic->getFrame()) {
 			// ran out of time.
 			if (status == STATE_CONTINUE) {
@@ -963,6 +967,15 @@ StateReturnType AIStateMachine::setTemporaryState( StateID newStateID, Int frame
 		return ret;
 	}
 	return STATE_FAILURE;
+}
+
+//----------------------------------------------------------------------------------------------------------
+void AIStateMachine::endTemporaryState()
+{
+	if (m_temporaryState) {
+		m_temporaryState->onExit(EXIT_RESET);
+		m_temporaryState = nullptr;
+	}
 }
 
 //----------------------------------------------------------------------------------------------------------
@@ -1241,7 +1254,7 @@ Bool outOfWeaponRangePosition( State *thisState, void* userData )
  */
 static Bool cannotPossiblyAttackObject( State *thisState, void* userData )
 {
-	AbleToAttackType attackType = (AbleToAttackType)(UnsignedInt)userData;
+	AbleToAttackType attackType = (AbleToAttackType)(UnsignedInt)(uintptr_t)userData;
 	Object *obj = thisState->getMachineOwner();
 	Object *victim = thisState->getMachineGoalObject();
 
@@ -2084,8 +2097,20 @@ StateReturnType AIMoveToState::update()
 	}
 
 	UnsignedInt adjustment = ai->getMoodMatrixActionAdjustment(MM_Action_Move);
-	if (m_isMoveTo && (adjustment & MAA_Action_To_AttackMove))
+	if (m_isMoveTo && (adjustment & MAA_Action_To_AttackMove)) {
+		AIStateMachine *machine = static_cast<AIStateMachine*>(getMachine());
+		if (machine->isTemporaryState(this)) {
+			// This is the temporary state of an AI move given to a busy unit (see privateMoveToPosition()). The attack move
+			// replaces only the state underneath, so this state kept running and started a new attack move every frame,
+			// each asking for a new path: a search across the map every few frames for 20 seconds.
+			// End this state first, so the attack move to the same position takes over.
+			const Coord3D goal = m_goalPosition;
+			machine->endTemporaryState();
+			ai->aiAttackMoveToPosition(&goal, NO_MAX_SHOTS_LIMIT, CMD_FROM_AI);
+			return STATE_CONTINUE;
+		}
 		ai->aiAttackMoveToPosition(&m_goalPosition, NO_MAX_SHOTS_LIMIT, CMD_FROM_AI);
+	}
 
 	// if we have a goal object, move to it, as it may have moved
 	Object* goalObj = getMachineGoalObject();
@@ -3331,6 +3356,9 @@ void AIFollowPathState::onExit( StateExitType status )
 	ai->setCanPathThroughUnits(false);
 	if (ai->getCurLocomotor())
 		ai->getCurLocomotor()->setUsePreciseZPos(false);
+
+	// A group speed cap (formation moves) only lasts for the path. Every move state sets its own speed when it starts.
+	ai->setDesiredSpeed( FAST_AS_POSSIBLE );
 
 	//Assign this value to the AIUpdateInterface so object's can access this value while
 	//determine which waypoints to plot in the waypoint renderer.

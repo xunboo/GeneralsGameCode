@@ -87,6 +87,8 @@
 #include "W3DDevice/GameClient/W3DView.h"
 #include "d3dx8math.h"
 #include "W3DDevice/GameClient/W3DShaderManager.h"
+#include "W3DDevice/GameClient/W3DShockwave.h"
+#include "GameClient/Shockwave.h"
 #include "W3DDevice/GameClient/Module/W3DModelDraw.h"
 #include "W3DDevice/GameClient/W3DCustomScene.h"
 
@@ -1362,10 +1364,38 @@ void W3DView::stepView()
 }
 
 //DECLARE_PERF_TIMER(W3DView_updateView)
+extern Real g_originalMaxCameraHeight;
+
 void W3DView::update()
 {
 	//USE_PERF_TIMER(W3DView_updateView)
 	Bool didScriptedMovement = false;
+
+	// The main menu scene is composed for the game's own zoom-out limit; real games use the raised one. The limit is switched here, every
+	// frame and in both directions, because the scene's camera is set up by scripts that use whatever limit is current.
+	{
+		static Bool s_menuClamped = FALSE;
+		const Real original = g_originalMaxCameraHeight;
+		const Real raised = TheGlobalData->m_maxCameraHeight;
+		if (original > 0.0f && raised > original && TheGameLogic)
+		{
+			const Bool shell = TheGameLogic->isInShellGame();
+			if (shell && m_maxHeightAboveGround > original * 1.001f)
+			{
+				const Real f = original / m_maxHeightAboveGround;
+				m_maxHeightAboveGround = original;
+				m_heightAboveGround *= f;
+				s_menuClamped = TRUE;
+			}
+			else if (!shell && s_menuClamped)
+			{
+				const Real f = raised / original;
+				m_maxHeightAboveGround *= f;		// only the limit: the camera of a new game starts where the map put it
+				s_menuClamped = FALSE;
+			}
+		}
+	}
+
 #ifdef LOG_FRAME_TIMES
 	__int64 curTime64,freq64;
 	static __int64 prevTime64=0;
@@ -1875,6 +1905,16 @@ void W3DView::draw()
 		m_isWireFrameEnabled = m_nextWireFrameEnabled;
 	}
 
+	// Explosion shockwave rings, drawn over the finished 3D scene. A script view filter that renders the scene into a
+	// texture owns the picture until its own post render, so the rings are skipped while one is active.
+	if (!skipRender &&
+			!W3DShaderManager::isRenderingToTexture() &&
+			(m_viewFilterMode == FM_NULL_MODE || m_viewFilter == FT_NULL_FILTER || m_viewFilter == FT_VIEW_DEFAULT) &&
+			W3DShockwave::isActive())
+	{
+		W3DShockwave::render();
+	}
+
 	if (m_viewFilterMode &&
 			m_viewFilter > FT_NULL_FILTER &&
 			m_viewFilter < FT_MAX)
@@ -2238,7 +2278,14 @@ void W3DView::setDefaultView(Real pitch, Real angle, Real maxHeight)
 	// MDC - we no longer want to rotate maps (design made all of them right to begin with)
 	//	m_defaultAngle = angle * M_PI/180.0f;
 	setDefaultPitch(pitch);
-	m_maxHeightAboveGround = TheGlobalData->m_maxCameraHeight*maxHeight;
+	// the main menu scene is composed for the game's own zoom limit: with the raised one the camera shows the edge of the map
+	const Bool menuScene = TheGameLogic && TheGameLogic->isInShellGame();
+	// Missions set their own multiplier here (the campaign scripts' "set default camera"). Applied on top of the raised limit it could reach
+	// 1.5x or 2x of it, so for real games a mission may only make the limit tighter, never wider than the configured MaxCameraHeight.
+	if (menuScene && g_originalMaxCameraHeight > 0.0f)
+		m_maxHeightAboveGround = g_originalMaxCameraHeight*maxHeight;
+	else
+		m_maxHeightAboveGround = TheGlobalData->m_maxCameraHeight*(maxHeight < 1.0f ? maxHeight : 1.0f);
 	if (m_minHeightAboveGround > m_maxHeightAboveGround)
 		m_maxHeightAboveGround = m_minHeightAboveGround;
 }
@@ -2276,8 +2323,10 @@ void W3DView::setZoom(Real z)
 //-------------------------------------------------------------------------------------------------
 void W3DView::setZoomToDefault()
 {
+	// a new game starts at the game's own default distance, not at the raised zoom-out limit
+	const Real scale = (g_originalMaxCameraHeight > 0.0f && m_maxHeightAboveGround > g_originalMaxCameraHeight * 1.001f) ? g_originalMaxCameraHeight / m_maxHeightAboveGround : 1.0f;
 	// default zoom has to be max, otherwise players will just zoom to max always
-	m_heightAboveGround = m_maxHeightAboveGround;
+	m_heightAboveGround = m_maxHeightAboveGround * scale;
 	m_zoom = getMaxZoom(m_pos.x, m_pos.y);
 
 	stopDoingScriptedCamera();
@@ -3719,6 +3768,25 @@ bool W3DView::getDesiredTerrainDrawSize(ICoord2D &dimensions) const
 		}
 
 		return false;
+	}
+
+	// A camera zoomed out beyond the game's own limit sees more than the regular terrain window: draw the whole map then
+	// (with some hysteresis so the window does not flip back and forth around the threshold).
+	static Bool s_wideView = FALSE;
+	if (m_isUserControlled)
+	{
+		const Real original = 310.0f;
+		if (m_currentHeightAboveGround > original * 1.6f) s_wideView = TRUE;			// only with a raised MaxCameraHeight
+		else if (m_currentHeightAboveGround < original * 1.45f) s_wideView = FALSE;
+	}
+	else
+		s_wideView = FALSE;
+	if (s_wideView)
+	{
+		// the larger terrain window the game already has for low camera angles
+		dimensions.x = WorldHeightMap::LOW_ANGLE_DRAW_WIDTH;
+		dimensions.y = WorldHeightMap::LOW_ANGLE_DRAW_HEIGHT;
+		return true;
 	}
 
 	const Real cameraPitch = asin(fabs(m_3DCamera->Get_Forward_Dir().Z));

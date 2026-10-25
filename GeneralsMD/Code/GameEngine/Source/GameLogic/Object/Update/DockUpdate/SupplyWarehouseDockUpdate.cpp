@@ -69,7 +69,7 @@ SupplyWarehouseDockUpdateModuleData::SupplyWarehouseDockUpdateModuleData()
 // ------------------------------------------------------------------------------------------------
 SupplyWarehouseDockUpdate::SupplyWarehouseDockUpdate( Thing *thing, const ModuleData* moduleData ) : DockUpdate( thing, moduleData )
 {
-	m_boxesStored = getSupplyWarehouseDockUpdateModuleData()->m_startingBoxesData;
+	m_boxesStored = getSupplyWarehouseDockUpdateModuleData()->getStartingBoxes();
 }
 
 SupplyWarehouseDockUpdate::~SupplyWarehouseDockUpdate()
@@ -81,7 +81,7 @@ void SupplyWarehouseDockUpdate::onObjectCreated()
 	Drawable *draw = getObject()->getDrawable();
 	if( draw )
 	{
-		draw->updateDrawableSupplyStatus( getSupplyWarehouseDockUpdateModuleData()->m_startingBoxesData, m_boxesStored );
+		draw->updateDrawableSupplyStatus( getSupplyWarehouseDockUpdateModuleData()->getStartingBoxes(), m_boxesStored );
 	}
 }
 
@@ -120,7 +120,7 @@ Bool SupplyWarehouseDockUpdate::action( Object* docker, Object *drone )
 			Drawable *draw = getObject()->getDrawable();
 			if( draw )
 			{
-				draw->updateDrawableSupplyStatus( getSupplyWarehouseDockUpdateModuleData()->m_startingBoxesData, m_boxesStored );
+				draw->updateDrawableSupplyStatus( getSupplyWarehouseDockUpdateModuleData()->getStartingBoxes(), m_boxesStored );
 			}
 		}
 
@@ -174,7 +174,7 @@ void SupplyWarehouseDockUpdate::setCashValue( Int cashValue )
 	Drawable *draw = getObject()->getDrawable();
 	if( draw )
 	{
-		draw->updateDrawableSupplyStatus( getSupplyWarehouseDockUpdateModuleData()->m_startingBoxesData, m_boxesStored );
+		draw->updateDrawableSupplyStatus( getSupplyWarehouseDockUpdateModuleData()->getStartingBoxes(), m_boxesStored );
 	}
 }
 
@@ -224,6 +224,6 @@ void SupplyWarehouseDockUpdate::loadPostProcess()
 	Object *us = getObject();
 	Drawable *draw = us->getDrawable();
 	if( draw )
-		draw->updateDrawableSupplyStatus( modData->m_startingBoxesData, m_boxesStored );
+		draw->updateDrawableSupplyStatus( modData->getStartingBoxes(), m_boxesStored );
 
 }

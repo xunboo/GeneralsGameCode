@@ -1931,7 +1931,7 @@ void HeightMapRenderObjClass::Render(RenderInfoClass & rinfo)
 	DX8Wrapper::Set_Texture(1,nullptr);
 	ShaderClass::Invalidate();
 
-	DX8Wrapper::Set_Transform(D3DTS_WORLD,Transform);
+	DX8Wrapper::Set_Transform(GFX_TS_WORLD,Transform);
 
 	//Apply the shader and material
 
@@ -1966,11 +1966,11 @@ void HeightMapRenderObjClass::Render(RenderInfoClass & rinfo)
 				DX8Wrapper::Set_Shader(ShaderClass::_PresetOpaqueSolidShader);
 				devicePasses=1;	//one pass solid, next in wireframe.
 				DX8Wrapper::Apply_Render_State_Changes();
-				DX8Wrapper::Set_DX8_Texture_Stage_State( 0, D3DTSS_COLORARG2, D3DTA_TFACTOR );
-				DX8Wrapper::Set_DX8_Render_State(D3DRS_TEXTUREFACTOR,0xff808080);
+				DX8Wrapper::Set_DX8_Texture_Stage_State( 0, GFX_TSS_COLORARG2, GFX_TA_TFACTOR );
+				DX8Wrapper::Set_DX8_Render_State(GFX_RS_TEXTUREFACTOR,0xff808080);
 				doMultiPassWireFrame=TRUE;
 				renderTerrainPass(&rinfo.Camera);
-				DX8Wrapper::Set_DX8_Render_State(D3DRS_TEXTUREFACTOR,0xff008000);
+				DX8Wrapper::Set_DX8_Render_State(GFX_RS_TEXTUREFACTOR,0xff008000);
 				return;
 			}
 	}
@@ -2020,7 +2020,7 @@ void HeightMapRenderObjClass::Render(RenderInfoClass & rinfo)
  		W3DShaderManager::setTexture(3,m_stageThreeTexture);//noise
 		//Disable writes to destination alpha channel (if there is one)
 		if (DX8Wrapper::getBackBufferFormat() == WW3D_FORMAT_A8R8G8B8)
-			DX8Wrapper::Set_DX8_Render_State(D3DRS_COLORWRITEENABLE,D3DCOLORWRITEENABLE_BLUE|D3DCOLORWRITEENABLE_GREEN|D3DCOLORWRITEENABLE_RED);
+			DX8Wrapper::Set_DX8_Render_State(GFX_RS_COLORWRITEENABLE,GFX_COLORWRITEENABLE_BLUE|GFX_COLORWRITEENABLE_GREEN|GFX_COLORWRITEENABLE_RED);
 	}
 
 	Int pass;
@@ -2045,17 +2045,17 @@ void HeightMapRenderObjClass::Render(RenderInfoClass & rinfo)
 				if (m_xformedVertexBuffer && pass==0) {
 					// Note - m_xformedVertexBuffer should only be used for non T&L hardware.  jba.
 					DX8Wrapper::Apply_Render_State_Changes();
-					int code = DX8Wrapper::_Get_D3D_Device8()->ProcessVertices(0, 0, numVertex, m_xformedVertexBuffer[j*m_numVBTilesX+i], 0);
+					int code = DX8Wrapper::Raw_Process_Vertices(0, 0, numVertex, m_xformedVertexBuffer[j*m_numVBTilesX+i], 0);
 					::OutputDebugString("did process vertex\n");
 				}
 				if (m_xformedVertexBuffer) {
 					// Note - m_xformedVertexBuffer should only be used for non T&L hardware.  jba.
 					DX8Wrapper::Apply_Render_State_Changes();
-					DX8Wrapper::_Get_D3D_Device8()->SetStreamSource(
+					DX8Wrapper::Raw_Set_Stream_Source(
 						0,
 						m_xformedVertexBuffer[j*m_numVBTilesX+i],
-						D3DXGetFVFVertexSize(D3DFVF_XYZRHW |D3DFVF_DIFFUSE|D3DFVF_TEX2));
-					DX8Wrapper::_Get_D3D_Device8()->SetVertexShader(D3DFVF_XYZRHW |D3DFVF_DIFFUSE|D3DFVF_TEX2);
+						D3DXGetFVFVertexSize(GFX_FVF_XYZRHW |GFX_FVF_DIFFUSE|GFX_FVF_TEX2));
+					DX8Wrapper::Raw_Set_Vertex_Shader(GFX_FVF_XYZRHW |GFX_FVF_DIFFUSE|GFX_FVF_TEX2);
 				}
 #endif
 				if (Is_Hidden() == 0) {
@@ -2149,7 +2149,7 @@ void HeightMapRenderObjClass::Render(RenderInfoClass & rinfo)
 ///Performs additional terrain rendering pass, blending in the black shroud texture.
 void HeightMapRenderObjClass::renderTerrainPass(CameraClass *pCamera)
 {
-	DX8Wrapper::Set_Transform(D3DTS_WORLD,Matrix3D(true));
+	DX8Wrapper::Set_Transform(GFX_TS_WORLD,Matrix3D(true));
 
 	//Apply the shader and material
 
@@ -2163,17 +2163,17 @@ void HeightMapRenderObjClass::renderTerrainPass(CameraClass *pCamera)
 			if (m_xformedVertexBuffer && pass==0) {
 				// Note - m_xformedVertexBuffer should only be used for non T&L hardware.  jba.
 				DX8Wrapper::Apply_Render_State_Changes();
-				int code = DX8Wrapper::_Get_D3D_Device8()->ProcessVertices(0, 0, numVertex, m_xformedVertexBuffer[j*m_numVBTilesX+i], 0);
+				int code = DX8Wrapper::Raw_Process_Vertices(0, 0, numVertex, m_xformedVertexBuffer[j*m_numVBTilesX+i], 0);
 				::OutputDebugString("did process vertex\n");
 			}
 			if (m_xformedVertexBuffer) {
 				// Note - m_xformedVertexBuffer should only be used for non T&L hardware.  jba.
 				DX8Wrapper::Apply_Render_State_Changes();
-				DX8Wrapper::_Get_D3D_Device8()->SetStreamSource(
+				DX8Wrapper::Raw_Set_Stream_Source(
 					0,
 					m_xformedVertexBuffer[j*m_numVBTilesX+i],
-					D3DXGetFVFVertexSize(D3DFVF_XYZRHW |D3DFVF_DIFFUSE|D3DFVF_TEX2));
-				DX8Wrapper::_Get_D3D_Device8()->SetVertexShader(D3DFVF_XYZRHW |D3DFVF_DIFFUSE|D3DFVF_TEX2);
+					D3DXGetFVFVertexSize(GFX_FVF_XYZRHW |GFX_FVF_DIFFUSE|GFX_FVF_TEX2));
+				DX8Wrapper::Raw_Set_Vertex_Shader(GFX_FVF_XYZRHW |GFX_FVF_DIFFUSE|GFX_FVF_TEX2);
 			}
 #endif
 			if (Is_Hidden() == 0) {

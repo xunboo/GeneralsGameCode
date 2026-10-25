@@ -48,6 +48,7 @@
 #include "Common/ArchiveFileSystem.h"
 #include "Common/LocalFileSystem.h"
 #include "Common/GlobalData.h"
+#include "Common/JobSystem.h"
 #include "Common/PerfTimer.h"
 #include "Common/RandomValue.h"
 #include "Common/NameKeyGenerator.h"
@@ -271,6 +272,8 @@ GameEngine::~GameEngine()
 	// TheSuperHackers @fix helmutbuhler 03/06/2025
 	// Reset all subsystems before deletion to prevent crashing due to cross dependencies.
 	reset();
+
+	JobSystem::shutdown();
 
 	TheSubsystemList->shutdownAll();
 	delete TheSubsystemList;

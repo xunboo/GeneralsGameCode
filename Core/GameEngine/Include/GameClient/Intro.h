@@ -29,6 +29,8 @@ class Intro
 	{
 		IntroState_Start,
 		IntroState_EALogoMovie,
+		IntroState_ModLogoWait,
+		IntroState_ModLogo,
 		IntroState_TheSuperHackersWait,
 		IntroState_TheSuperHackers,
 		IntroState_SizzleMovieWait,
@@ -69,6 +71,7 @@ private:
 	void enterNextState();
 
 	void doEALogoMovie();
+	void doModLogo();
 	void doTheSuperHackers();
 	void doSizzleMovie();
 	void doPostIntro();

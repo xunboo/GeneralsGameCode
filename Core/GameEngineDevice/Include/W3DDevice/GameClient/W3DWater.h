@@ -104,6 +104,7 @@ public:
 	void setTimeOfDay(TimeOfDay tod); ///<change sky/water for time of day
 	void toggleCloudLayer(Bool state)	{	m_useCloudLayer=state;}	///<enables/disables the cloud layer
 	void updateRenderTargetTextures(CameraClass *cam);	///< renders into any required textures.
+	Bool wantsMirrorUpdate() const {return m_reflectionsEnabled && m_modernRiverPS && m_modernTrapezoidPS;}	///< modern water wants a planar reflection render
 	void ReleaseResources();	///< Release all dx8 resources so the device can be reset.
 	void ReAcquireResources();  ///< Reacquire all resources after device reset.
 	Real getWaterHeight(Real x, Real y);	///<return water height at given point - for use by WB.
@@ -154,16 +155,47 @@ protected:
 		float tu, tv;
 	};
 
-	LPDIRECT3DDEVICE8 m_pDev;						///<pointer to D3D Device
-	LPDIRECT3DVERTEXBUFFER8 m_vertexBufferD3D;		///<D3D vertex buffer
-	LPDIRECT3DINDEXBUFFER8	m_indexBufferD3D;	///<D3D index buffer
+	GfxDevice* m_pDev;						///<pointer to D3D Device
+	GfxVertexBuffer* m_vertexBufferD3D;		///<D3D vertex buffer
+	GfxIndexBuffer*	m_indexBufferD3D;	///<D3D index buffer
 	Int						m_vertexBufferD3DOffset;	///<location to start writing vertices
 	DWORD					m_dwWavePixelShader;	///<handle to D3D pixel shader
+
+	// Modern water (patched Vulkan layer only): refraction/depth/foam shader, see Water/Shaders/WaterModern.hlsl
+	DWORD					m_modernRiverPS;		///<ps_2_b river water, 0 when unavailable
+	DWORD					m_modernTrapezoidPS;	///<ps_2_b sea water (shroud texture variant), 0 when unavailable
+	Bool					m_modernFrameReady;		///<this frame's back buffer copy exists, modern shaders may be used
+	TextureClass			*m_sceneCapture;		///<copy of the back buffer taken before the water is drawn
+	UnsignedInt				m_sceneCaptureW, m_sceneCaptureH;
+	GfxTexture*		m_depthMapTexture;		///<terrain height of the whole map, sampled in world space
+	const void				*m_depthMapSource;		///<heightmap the depth texture was built from
+	Int						m_depthMapW, m_depthMapH, m_depthMapBorder;
+	Real					m_depthMapMin, m_depthMapRange;	///<terrain height = min + texel * range
+	Real					m_curWaterZ;			///<height of the water polygon about to be drawn
+	Bool					m_reflectionsEnabled;	///<Options.ini WaterReflections
+	Bool					m_mirrorReady;			///<the reflection texture holds this frame's mirrored scene
+	Real					m_mirrorZ;				///<height of the water plane the scene is mirrored at
+	Bool					findMirrorLevel(Real &z) const;	///<height of the first water polygon of the map
+
+	enum { MAX_WAKES = 6 };
+	struct WakeObject
+	{
+		Real x, y, radius, speed, dirX, dirY;	///<speed in world units per second
+	};
+	WakeObject				m_wake[MAX_WAKES];		///<ships, hovercraft and wading units near the view that disturb the water
+	Int						m_wakeCount;
+	void					gatherWakeObjects();
+	void					captureSceneForWater();		///<copy the back buffer once per frame, before any water is drawn
+	void					ensureDepthMap();			///<(re)build the terrain height texture when the map changed
+	void					releaseUpdatedWaterResources();
+	void					cleanupUpdatedWaterStages();	///<unbinds what setupUpdatedWaterStages bound
+	void					setupUpdatedWaterStages(Real waterZ);	///<bind stages 4/5, transforms and constants for the updated shaders
+	Bool					useModernShader() const {return m_modernFrameReady && m_depthMapTexture != nullptr;}
 	DWORD					m_dwWaveVertexShader;	///<handle to D3D vertex shader
 	Int	m_numVertices;				///<number of vertices in D3D vertex buffer
 	Int m_numIndices;				///<number of indices in D3D index buffer
-	LPDIRECT3DTEXTURE8 m_pBumpTexture[NUM_BUMP_FRAMES]; ///<animation frames
-	LPDIRECT3DTEXTURE8 m_pBumpTexture2[NUM_BUMP_FRAMES]; ///<animation frames
+	GfxTexture* m_pBumpTexture[NUM_BUMP_FRAMES]; ///<animation frames
+	GfxTexture* m_pBumpTexture2[NUM_BUMP_FRAMES]; ///<animation frames
 	Real				m_fBumpFrame;	///<current animation frame
 	Real				m_fBumpScale;	///<scales bump map uv perturbation
 	TextureClass * m_pReflectionTexture;	///<render target for reflection
@@ -242,7 +274,7 @@ protected:
 	void testCurvedWater();	///<draw the sky layer (clouds, stars, etc.)
 	void renderSkyBody(Matrix3D *mat);	///<draw the sky body (sun, moon, etc.)
 	void renderWaterMesh();			///<draw the water surface mesh (deformed 3d mesh).
-	HRESULT initBumpMap(LPDIRECT3DTEXTURE8 *pTex, TextureClass *pBumpSource);	///<copies data into bump-map format.
+	HRESULT initBumpMap(GfxTexture* *pTex, TextureClass *pBumpSource);	///<copies data into bump-map format.
 	void renderMirror(CameraClass *cam);	///< Draw reflected scene into texture
 	void drawSea(RenderInfoClass & rinfo);	///< Draw the surface of the water
 	///bounding box of frustum clipped polygon plane

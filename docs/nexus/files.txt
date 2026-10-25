@@ -1,0 +1,37 @@
+Nexus Mods file descriptions, version 1.0.0
+
+--------------------------------------------------------------------------------
+ZeroHourReimagined_1.0.0.zip                         Category: Main Files
+Name: Zero Hour Reimagined
+Description:
+The mod: 64-bit Zero Hour with the new Vulkan renderer, gameplay changes, the stronger Hard AI, faster pathfinding and fixes.
+Includes the base game Generals (graphics and fixes only). Copy the content of the "Zero Hour" folder into your game folder
+(the one with INIZH.big) and start Play-Updated.bat. Full guide in README-INSTALL.txt.
+
+--------------------------------------------------------------------------------
+ZeroHourReimagined_1.0.0_HDTextures.zip              Category: Optional Files
+Name: HD Textures
+Description:
+5483 textures of units, infantry, faction and civilian buildings, props and effects, upscaled 4x with AI (Real-ESRGAN).
+Trees, terrain and the interface keep the original textures. Zero Hour only. Install the main file first, then copy the Art
+folder from "Zero Hour" into your game folder and confirm merging. About 3.7 GB on disk.
+
+--------------------------------------------------------------------------------
+ZeroHourReimagined_1.0.0_NoFog_FarZoom.zip           Category: Optional Files
+Name: No Fog / Far Zoom launchers
+Description:
+Three launchers for Zero Hour and Generals: Play-NoFog.bat (whole map visible, no shroud and no fog of war),
+Play-FarZoom.bat (camera zooms out to 750 instead of 450) and Play-NoFog-FarZoom.bat (both). Copy the .bat files into
+your game folder next to Play-Updated.bat. Works together with the HD Textures. The same can be set in Options.ini
+(FogOfWar = no, MaxCameraHeight = 750).
+
+--------------------------------------------------------------------------------
+ZeroHourReimagined_1.0.0_source.zip                  Category: Miscellaneous
+Name: Source code
+Description:
+The complete source code of version 1.0.0 (GPL v3 with EA's additional terms). Not needed to play.
+
+--------------------------------------------------------------------------------
+Short summary for the mod page (max. 350 characters):
+64-bit Zero Hour with a new Vulkan renderer: new water, real shadows, dynamic lights, native resolution. Faster economy,
+stronger Hard AI, smooth 4v4 battles, many fixes. Optional HD textures (4x AI upscale) and no fog / far zoom launchers.

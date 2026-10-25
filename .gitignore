@@ -67,3 +67,19 @@ build.ninja
 ## Python
 __pycache__/
 *.pyc
+# Patched DXVK build tree (tools/dxvk/build-dxvk.ps1)
+/tools/dxvk/work/
+
+# game art (extracted or edited) must never be committed
+/assets/Art/**
+!/assets/Art/**/.gitkeep
+# the intro logo of this mod is our own artwork
+!/assets/Art/**/
+!/assets/Art/Textures/ModIntroLogo.tga
+*.glb
+/textures_png/
+
+/docs/screenshots/
+
+# release archives of this mod (made by tools/make-release.ps1, uploaded to Nexus Mods)
+/ZeroHourReimagined_*.zip
