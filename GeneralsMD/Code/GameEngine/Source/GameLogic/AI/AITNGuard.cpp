@@ -502,6 +502,9 @@ StateReturnType AITNGuardOuterState::onEnter()
 //--------------------------------------------------------------------------------------
 StateReturnType AITNGuardOuterState::update()
 {
+	// onEnter() makes no attack state when there is nothing to chase; AIGuardOuterState checks the same.
+	if (m_attackState==nullptr) return STATE_SUCCESS;
+
 	Object *owner = getMachineOwner();
 	Object* goalObj = m_attackState->getMachineGoalObject();
 	if (goalObj)

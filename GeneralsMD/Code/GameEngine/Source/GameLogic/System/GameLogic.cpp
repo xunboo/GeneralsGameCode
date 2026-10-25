@@ -38,6 +38,7 @@
 #include "Common/GameEngine.h"
 #include "Common/GameLOD.h"
 #include "Common/GameState.h"
+#include "Common/LogicProfile.h"
 #include "Common/GameUtility.h"
 #include "Common/INI.h"
 #include "Common/LatchRestore.h"
@@ -61,6 +62,7 @@
 #include "Common/WellKnownKeys.h"
 #include "Common/Xfer.h"
 #include "Common/XferCRC.h"
+#include "Common/XferSave.h"
 #include "Common/XferDeepCRC.h"
 #include "Common/GameSpyMiscPreferences.h"
 
@@ -1553,6 +1555,57 @@ void GameLogic::tryStartNewGame( Bool loadingSaveGame )
 	// update the player list to match the new map.
 	TheTeamFactory->reset();
 	ThePlayerList->newGame();
+
+	// Diagnostics for skirmish / multiplayer setup: what the lobby slots became and what the players look like after the player list was built.
+	if (TheGameInfo)
+	{
+		if (FILE *log = fopen("skirmish_setup.log", "w"))
+		{
+			fprintf(log, "map %s, skirmishOrAI %d, skirmish sides in map data %d\n", TheGameInfo->getMap().str(), (int)isSkirmishOrSkirmishReplay, TheSidesList->getNumSkirmishSides());
+			for (Int i = 0; i < MAX_SLOTS; ++i)
+			{
+				GameSlot *slot = TheGameInfo->getSlot(i);
+				if (slot && slot->isOccupied())
+					fprintf(log, "slot %d: state %d, human %d, template %d, color %d, startPos %d, team %d\n", i, (int)slot->getState(), (int)slot->isHuman(),
+						slot->getPlayerTemplate(), slot->getColor(), slot->getStartPos(), slot->getTeamNumber());
+			}
+			for (Int i = 0; i < ThePlayerList->getPlayerCount(); ++i)
+			{
+				Player *p = ThePlayerList->getNthPlayer(i);
+				if (!p)
+					continue;
+				fprintf(log, "player %d '%s': type %d, side '%s', color %08x, startIndex %d, skirmishAI %d, defaultTeam %d\n", i,
+					p->getPlayerNameKey() != NAMEKEY_INVALID ? TheNameKeyGenerator->keyToName(p->getPlayerNameKey()).str() : "?",
+					(int)p->getPlayerType(), p->getSide().str(), (unsigned)p->getPlayerColor(), p->getMpStartIndex(), (int)p->isSkirmishAIPlayer(), p->getDefaultTeam() ? 1 : 0);
+			}
+			for (Int i = 0; i < ThePlayerList->getPlayerCount(); ++i)
+			{
+				Player *p = ThePlayerList->getNthPlayer(i);
+				if (!p)
+					continue;
+				AsciiString wanted;
+				wanted.format("team%s", p->getPlayerName().str());
+				fprintf(log, "player %d internal name '%s', wants default team '%s', found %d\n", i, p->getPlayerName().str(), wanted.str(), TheTeamFactory->findTeam(wanted) ? 1 : 0);
+			}
+			for (Int i = 0; i < TheSidesList->getNumTeams(); ++i)
+			{
+				Dict *td = TheSidesList->getTeamInfo(i)->getDict();
+				fprintf(log, "team %d '%s' owner '%s' singleton %d\n", i, td->getAsciiString(TheKey_teamName).str(), td->getAsciiString(TheKey_teamOwner).str(), (int)td->getBool(TheKey_teamIsSingleton));
+			}
+			fprintf(log, "skirmish team records: %d\n", TheSidesList->getNumSkirmishTeams());
+			for (Int i = 0; i < TheSidesList->getNumSkirmishSides(); ++i)
+			{
+				SidesInfo *si = TheSidesList->getSkirmishSideInfo(i);
+				AsciiString sname = si->getDict()->getAsciiString(TheKey_playerName);
+				Int owned = 0;
+				for (Int t = 0; t < TheSidesList->getNumSkirmishTeams(); ++t)
+					if (TheSidesList->getSkirmishTeamInfo(t)->getDict()->getAsciiString(TheKey_teamOwner) == sname)
+						++owned;
+				fprintf(log, "skirmish side %d '%s' faction '%s' scripts %d teams owned %d\n", i, sname.str(), si->getDict()->getAsciiString(TheKey_playerFaction).str(), si->getScriptList() ? 1 : 0, owned);
+			}
+			fclose(log);
+		}
+	}
 
 	// update the loadscreen
 	updateLoadProgress(LOAD_PROGRESS_POST_PLAYER_LIST_RESET);
@@ -3709,6 +3762,10 @@ void GameLogic::update()
 
 	setFPMode();
 
+	// the profile line of this frame is written after all the timers below have added their time
+	struct ProfileFrameEnd { GameLogic *gl; ~ProfileFrameEnd() { LogicProfile::frameDone( gl->getFrame(), gl->getObjectCount() ); } } profileFrameEnd = { this };
+	LogicProfile::Scope profileTotal( LogicProfile::SEC_TOTAL );
+
 	/// @todo remove this hack
 	if ( m_startNewGame && !TheDisplay->isMoviePlaying())
 	{
@@ -3747,6 +3804,7 @@ void GameLogic::update()
 
 	// update (execute) scripts
 	{
+		LogicProfile::Scope profile( LogicProfile::SEC_SCRIPTS );
 		TheScriptEngine->UPDATE();
 	}
 
@@ -3759,6 +3817,7 @@ void GameLogic::update()
 	// Note - TerrainLogic update needs to happen after ScriptEngine update, but before object updates.  jba.
 	// This way changes in bridges are noted in the script engine before being cleared in TerrainLogic->update
 	{
+		LogicProfile::Scope profile( LogicProfile::SEC_TERRAIN );
 		TheTerrainLogic->UPDATE();
 	}
 
@@ -3773,6 +3832,8 @@ void GameLogic::update()
 #else
 	Bool generateForSolo = isSoloGameOrReplay && ((m_frame % REPLAY_CRC_INTERVAL) == 0);
 #endif // DEBUG_CRC
+
+	traceCRC();
 
 	if (generateForSolo || generateForMP)
 	{
@@ -3810,6 +3871,7 @@ void GameLogic::update()
 
 	// process client commands
 	{
+		LogicProfile::Scope profile( LogicProfile::SEC_COMMANDS );
 		processCommandList( TheCommandList );
 	}
 
@@ -3847,6 +3909,7 @@ void GameLogic::update()
 #endif
 
 	{
+		LogicProfile::Scope profile( LogicProfile::SEC_OBJECTS );
 		while (!m_sleepyUpdates.empty())
 		{
 			UpdateModulePtr u = peekSleepyUpdate();
@@ -3901,16 +3964,19 @@ void GameLogic::update()
 
 	// update the Artificial Intelligence system
 	{
+		LogicProfile::Scope profile( LogicProfile::SEC_AI );
 		TheAI->UPDATE();
 	}
 
 	// production updates
 	{
+		LogicProfile::Scope profile( LogicProfile::SEC_BUILD );
 		TheBuildAssistant->UPDATE();
 	}
 
 	// update partition info
 	{
+		LogicProfile::Scope profile( LogicProfile::SEC_PARTITION );
 		ThePartitionManager->UPDATE();
 	}
 
@@ -3919,6 +3985,7 @@ void GameLogic::update()
 	//
 
 	// destroy all pending objects
+	LogicProfile::Scope profileCleanup( LogicProfile::SEC_CLEANUP );
 	processDestroyList();
 
 	// reset the command list, destroying all messages
@@ -4269,6 +4336,93 @@ UnsignedInt GameLogic::getCRC( Int mode, AsciiString deepCRCFileName )
 		CRCGEN_LOG(("CRC for frame %d is 0x%8.8X", m_frame, theCRC));
 	}
 	return theCRC;
+}
+
+// ------------------------------------------------------------------------------------------------
+/** -replayCRCTrace: writes the CRCs of the parts of the game state and of every object for every frame of a range, so two runs of the same replay can be compared to find where they part ways. */
+void GameLogic::traceCRC()
+{
+	const GlobalData *data = TheGlobalData;
+	if (data->m_replayCRCTrace.isEmpty() || m_frame < data->m_replayCRCTraceFrom || m_frame > data->m_replayCRCTraceTo)
+		return;
+
+	FILE *f = fopen( data->m_replayCRCTrace.str(), "a" );
+	if (!f)
+		return;
+
+	XferCRC objects;
+	objects.open( "trace" );
+	for (Object *obj = m_objList; obj; obj = obj->getNextObject())
+		objects.xferSnapshot( obj );
+	objects.close();
+
+	XferCRC partition;
+	partition.open( "trace" );
+	partition.xferSnapshot( ThePartitionManager );
+	partition.close();
+
+	XferCRC players;
+	players.open( "trace" );
+	players.xferSnapshot( ThePlayerList );
+	players.close();
+
+	XferCRC ai;
+	ai.open( "trace" );
+	ai.xferSnapshot( TheAI );
+	ai.close();
+
+	fprintf( f, "frame %u objects %8.8X partition %8.8X players %8.8X ai %8.8X seed %8.8X\n", m_frame,
+		objects.getCRC(), partition.getCRC(), players.getCRC(), ai.getCRC(), GetGameLogicRandomSeedCRC() );
+
+	if (data->m_replayTraceObject != 0)
+	{
+		Object *obj = findObjectByID( (ObjectID)data->m_replayTraceObject );
+		if (obj)
+		{
+			XferCRC one;
+			one.open( "trace" );
+			one.xferSnapshot( obj );
+			one.close();
+			const Coord3D *pos = obj->getPosition();
+			const UnsignedInt *p = (const UnsignedInt *)pos;
+			AIUpdateInterface *ai = obj->getAIUpdateInterface();
+			fprintf( f, "  traced %u crc %8.8X pos %8.8X %8.8X %8.8X path %8.8X waiting %d\n", obj->getID(), one.getCRC(), p[0], p[1], p[2],
+				ai ? AIUpdateInterface::pathFingerprint( ai->getPath() ) : 0, ai && ai->isWaitingForPath() ? 1 : 0 );
+			if (m_frame + 15 >= data->m_replayCRCTraceTo)
+			{
+				// The whole saved state of every module, hashed, to find which part of the object parts ways first.
+				for (BehaviorModule **module = obj->getBehaviorModules(); *module; ++module)
+				{
+					XferSave save;
+					save.open( "trace_module.bin" );
+					save.xferSnapshot( *module );
+					save.close();
+					UnsignedInt hash = 2166136261u;
+					FILE *bin = fopen( "trace_module.bin", "rb" );
+					if (bin)
+					{
+						Int c;
+						while ((c = fgetc( bin )) != EOF)
+							hash = (hash ^ (UnsignedInt)c) * 16777619u;
+						fclose( bin );
+					}
+					fprintf( f, "    module %s %8.8X\n", TheNameKeyGenerator->keyToName( (*module)->getModuleNameKey() ).str(), hash );
+				}
+			}
+		}
+	}
+	else
+	{
+		for (Object *obj = m_objList; obj; obj = obj->getNextObject())
+		{
+			XferCRC one;
+			one.open( "trace" );
+			one.xferSnapshot( obj );
+			one.close();
+			fprintf( f, "  object %u %s %8.8X\n", obj->getID(), obj->getTemplate()->getName().str(), one.getCRC() );
+		}
+	}
+	fclose( f );
 }
 
 // ------------------------------------------------------------------------------------------------

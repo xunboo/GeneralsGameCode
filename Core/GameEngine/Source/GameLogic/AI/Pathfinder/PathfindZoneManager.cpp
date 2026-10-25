@@ -21,6 +21,7 @@
 #include "GameLogic/Pathfinder/PathfindConstants.h"
 #include "GameLogic/Pathfinder/PathfindLayer.h"
 #include "GameLogic/Pathfinder/PathfindZoneManager.h"
+#include "GameLogic/Pathfinder/PathSearchContext.h"
 #include "GameLogic/Pathfinder/ZoneBlock.h"
 #include "GameLogic/TerrainLogic.h"
 
@@ -611,26 +612,17 @@ void PathfindZoneManager::updateZonesForModify(PathfindCell **map, PathfindLayer
 // Clear the passable flags.
 //
 void PathfindZoneManager::clearPassableFlags()
-{	Int blockX;
-	Int blockY;
-	for (blockX = 0; blockX<m_zoneBlockExtent.x; blockX++) {
-		for (blockY = 0; blockY<m_zoneBlockExtent.y; blockY++) {
-			m_zoneBlocks[blockX][blockY].setPassable(false);
-		}
-	}
+{
+	// The flags belong to the search, so they are kept in the search context of the calling thread.
+	PathSearchContext::current().setAllPassable(false);
 }
 
 //
 // Set the passable flags.
 //
 void PathfindZoneManager::setAllPassable()
-{	Int blockX;
-	Int blockY;
-	for (blockX = 0; blockX<m_zoneBlockExtent.x; blockX++) {
-		for (blockY = 0; blockY<m_zoneBlockExtent.y; blockY++) {
-			m_zoneBlocks[blockX][blockY].setPassable(true);
-		}
-	}
+{
+	PathSearchContext::current().setAllPassable(true);
 }
 
 //
@@ -649,7 +641,7 @@ void PathfindZoneManager::setPassable(Int cellX, Int cellY, Bool passable)
 		DEBUG_CRASH(("Invalid block."));
 		return;
 	}
-	m_zoneBlocks[blockX][blockY].setPassable(passable);
+	PathSearchContext::current().setPassable(blockX*m_zoneBlockExtent.y + blockY, passable);
 }
 
 //
@@ -668,7 +660,7 @@ Bool PathfindZoneManager::isPassable(Int cellX, Int cellY) const
 		DEBUG_CRASH(("Invalid block."));
 		return false;
 	}
-	return m_zoneBlocks[blockX][blockY].isPassable();
+	return PathSearchContext::current().isPassable(blockX*m_zoneBlockExtent.y + blockY);
 }
 
 //
@@ -685,7 +677,7 @@ Bool PathfindZoneManager::clipIsPassable(Int cellX, Int cellY) const
 	if (blockY<0 || blockY>=m_zoneBlockExtent.y) {
 		return false;
 	}
-	return m_zoneBlocks[blockX][blockY].isPassable();
+	return PathSearchContext::current().isPassable(blockX*m_zoneBlockExtent.y + blockY);
 }
 
 //

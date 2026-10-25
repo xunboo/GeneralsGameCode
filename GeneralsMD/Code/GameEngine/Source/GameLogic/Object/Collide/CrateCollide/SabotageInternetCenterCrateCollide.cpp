@@ -179,7 +179,7 @@ Bool SabotageInternetCenterCrateCollide::executeCrateBehavior( Object *other )
 	//doesn't need to change.
 	// This loop goes before the Disabled_Hacked one since that will use the normal disabled code with its cool timers.
 	// This loop is for the other centers, but it hits the main one too.
-	other->getControllingPlayer()->iterateObjects( disableInternetCenterSpyVision, (void*)frame );
+	other->getControllingPlayer()->iterateObjects( disableInternetCenterSpyVision, (void*)(uintptr_t)frame );
 
 	//Disable the internet center. Note this is purely fluff... because the spy vision update will still run even
 	//though we are disabling it. We have to disable the spyvision updates manually because other centers need to
@@ -188,7 +188,7 @@ Bool SabotageInternetCenterCrateCollide::executeCrateBehavior( Object *other )
 
 	//Disable all the hackers inside.
 	ContainModuleInterface *contain = other->getContain();
-	contain->iterateContained( disableHacker, (void*)frame, FALSE );
+	contain->iterateContained( disableHacker, (void*)(uintptr_t)frame, FALSE );
 
 	return TRUE;
 }

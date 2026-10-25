@@ -461,8 +461,12 @@ private:
 	void doSurrenderUpdateStuff();
 #endif
 
+	void doPathfindInternal( PathfindServicesInterface *pathfinder );
+
 public:
 	void doPathfind( PathfindServicesInterface *pathfinder );
+	static UnsignedInt pathFingerprint( const Path *path );	///< CRC of the node positions, for -replayTraceObject
+	Bool predictPathfind( struct PathfindPrediction &prediction );	///< The search doPathfind() will most likely start with, so the pathfinder can compute it ahead on a worker thread
 	void requestPath( Coord3D *destination, Bool isGoalDestination );	///< Queues a request to pathfind to destination.
 	void requestAttackPath( ObjectID victimID, const Coord3D* victimPos );	///< computes path to attack the current target, returns false if no path
 	void requestApproachPath( Coord3D *destination );	///< computes path to attack the current target, returns false if no path

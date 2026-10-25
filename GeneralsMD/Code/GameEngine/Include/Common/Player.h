@@ -223,6 +223,7 @@ public:
 
 	UnicodeString getPlayerDisplayName() { return m_playerDisplayName; }
 	NameKeyType getPlayerNameKey() const { return m_playerNameKey; }
+	const AsciiString& getPlayerName() const { return m_playerName; }
 
 	AsciiString getSide() const { return m_side; }
 	AsciiString getBaseSide() const { return m_baseSide; }

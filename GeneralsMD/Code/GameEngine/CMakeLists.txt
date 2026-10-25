@@ -570,6 +570,8 @@ set(GAMEENGINE_SRC
     Source/Common/GameLOD.cpp
     Source/Common/GameMain.cpp
     Source/Common/GlobalData.cpp
+    Source/Common/JobSystem.cpp
+    Source/Common/LogicProfile.cpp
 #    Source/Common/INI/INI.cpp
 #    Source/Common/INI/INIAiData.cpp
 #    Source/Common/INI/INIAnimation.cpp
@@ -825,12 +827,14 @@ set(GAMEENGINE_SRC
     Source/GameLogic/AI/AI.cpp
     Source/GameLogic/AI/AIDock.cpp
     Source/GameLogic/AI/AIGroup.cpp
+    Source/GameLogic/AI/AIGroupFormation.cpp
     Source/GameLogic/AI/AIGuard.cpp
     Source/GameLogic/AI/AIGuardRetaliate.cpp
 #    Source/GameLogic/AI/AIPathfind.cpp
     Source/GameLogic/AI/AIPlayer.cpp
     Source/GameLogic/AI/CompetitiveSkirmishAI.cpp
     Source/GameLogic/AI/AISkirmishPlayer.cpp
+    Source/GameLogic/AI/AISkirmishHard.cpp
     Source/GameLogic/AI/AIStates.cpp
     Source/GameLogic/AI/AITNGuard.cpp
     Source/GameLogic/AI/Squad.cpp

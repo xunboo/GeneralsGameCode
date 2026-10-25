@@ -9,6 +9,13 @@ endif()
 
 target_link_libraries(g_generals PRIVATE
     comctl32
+    d3d8
+    $<IF:$<BOOL:${RTS_USE_D3DX8_COMPAT}>,deps_d3dx8compat,d3dx8>
+    dinput8
+    dxguid
+    deps_bink
+    deps_miles
+    g_gameengine
     g_gameenginedevice
     gi_always
     imm32

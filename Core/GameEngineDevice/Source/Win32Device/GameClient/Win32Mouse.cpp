@@ -33,6 +33,7 @@
 #include "Common/GlobalData.h"
 #include "Common/LocalFileSystem.h"
 #include "GameClient/GameClient.h"
+#include "Win32Device/Common/Win32LocalFileSystem.h"
 #include "Win32Device/GameClient/Win32Mouse.h"
 #include "WinMain.h"
 
@@ -398,6 +399,18 @@ void Win32Mouse::initCursorResources()
 
 				if (!loaded)
 					cursorResources[cursor][direction]=LoadCursorFromFile(resourcePath);
+
+				// Not in the working directory: try the installed game.
+				if (!cursorResources[cursor][direction])
+				{
+					AsciiString installPath;
+					if (Win32LocalFileSystem_FindInInstall(resourcePath, installPath))
+						cursorResources[cursor][direction]=LoadCursorFromFile(installPath.str());
+				}
+
+				// The .ani file was not found (the game was not started in its own folder): a plain arrow is better than no cursor.
+				if (!cursorResources[cursor][direction])
+					cursorResources[cursor][direction]=LoadCursor(nullptr, IDC_ARROW);
 				DEBUG_ASSERTCRASH(cursorResources[cursor][direction], ("MissingCursor %s",resourcePath));
 			}
 		}
@@ -420,7 +433,8 @@ void Win32Mouse::setCursor( MouseCursor cursor )
 		SetCursor( nullptr );
 	else
 	{
-		SetCursor(cursorResources[cursor][m_directionFrame]);
+		HCURSOR hCursor = cursorResources[cursor][m_directionFrame];
+		SetCursor(hCursor ? hCursor : LoadCursor(nullptr, IDC_ARROW));
 	}
 
 	// save current cursor

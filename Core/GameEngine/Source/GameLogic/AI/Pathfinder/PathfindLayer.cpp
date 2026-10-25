@@ -229,6 +229,7 @@ void PathfindLayer::allocateCells(const IRegion2D *extent)
 	for (i=0; i<m_width; i++) {
 		m_layerCells[i] = &m_blockOfMapCells[i*m_height];
 	}
+	PathfindCell::assignSearchIndices(m_blockOfMapCells, m_width*m_height);
 }
 
 /**
@@ -284,6 +285,7 @@ void PathfindLayer::allocateCellsForWallLayer(const IRegion2D *extent, ObjectID 
 	for (i=0; i<m_width; i++) {
 		m_layerCells[i] = &m_blockOfMapCells[i*m_height];
 	}
+	PathfindCell::assignSearchIndices(m_blockOfMapCells, m_width*m_height);
 }
 
 /**

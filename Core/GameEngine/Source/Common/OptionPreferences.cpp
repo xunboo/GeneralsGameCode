@@ -662,11 +662,52 @@ Bool OptionPreferences::getDynamicLODEnabled()
 	return FALSE;
 }
 
+Bool OptionPreferences::getUpdatedWaterEnabled()
+{
+	if (GetEnvironmentVariableA("GENERALS_ORIGINAL", nullptr, 0) > 0)	// Play-Original.bat: no added effects at all
+		return FALSE;
+	OptionPreferences::const_iterator it = find("UpdatedWater");
+	if (it == end())
+		return TRUE;
+
+	return stricmp(it->second.str(), "no") != 0;
+}
+
+Bool OptionPreferences::getWaterReflectionsEnabled()
+{
+	if (GetEnvironmentVariableA("GENERALS_ORIGINAL", nullptr, 0) > 0)	// Play-Original.bat: no added effects at all
+		return FALSE;
+	OptionPreferences::const_iterator it = find("WaterReflections");
+	if (it == end())
+		return TRUE;
+
+	return stricmp(it->second.str(), "no") != 0;
+}
+
+Bool OptionPreferences::getShockwavesEnabled()
+{
+	if (GetEnvironmentVariableA("GENERALS_ORIGINAL", nullptr, 0) > 0)	// Play-Original.bat: no added effects at all
+		return FALSE;
+	OptionPreferences::const_iterator it = find("Shockwaves");
+	if (it == end())
+		return TRUE;
+
+	return stricmp(it->second.str(), "no") != 0;
+}
+
+Bool OptionPreferences::isFPSLimitDisabledByUser()
+{
+	// No FPSLimit key at all (fresh install) counts as "no limit" too: this build draws as fast as it can by default.
+	// The game logic always stays at its own fixed rate, only the rendering is uncapped.
+	OptionPreferences::const_iterator it = find("FPSLimit");
+	return it == end() || stricmp(it->second.str(), "no") == 0;
+}
+
 Bool OptionPreferences::getFPSLimitEnabled()
 {
 	OptionPreferences::const_iterator it = find("FPSLimit");
 	if (it == end())
-		return TheGlobalData->m_useFpsLimit;
+		return FALSE;	// unlimited by default, add "FPSLimit = yes" to Options.ini for the original 30 fps cap
 
 	if (stricmp(it->second.str(), "yes") == 0) {
 		return TRUE;

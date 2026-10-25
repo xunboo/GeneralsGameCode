@@ -1003,6 +1003,17 @@ void RecorderClass::handleCRCMessage(UnsignedInt newCRC, Int playerIndex, Bool f
 		UnsignedInt playbackCRC = m_crcInfo.readCRC();
 		//DEBUG_LOG(("RecorderClass::handleCRCMessage() - Comparing CRCs of InGame:%8.8X Replay:%8.8X Frame:%d from Player %d",
 		//	playbackCRC, newCRC, TheGameLogic->getFrame()-m_crcInfo.GetQueueSize()-1, playerIndex));
+		const Bool logCRCs = !TheGlobalData->m_replayCRCLog.isEmpty();
+		if (logCRCs)
+		{
+			// Every check goes to the file, so two runs of the same replay can be compared line by line.
+			FILE *log = fopen(TheGlobalData->m_replayCRCLog.str(), "a");
+			if (log)
+			{
+				fprintf(log, "frame %u game %8.8X replay %8.8X\n", TheGameLogic->getFrame() - m_crcInfo.GetQueueSize() - 1, newCRC, playbackCRC);
+				fclose(log);
+			}
+		}
 		if (TheGameLogic->getFrame() > 0 && newCRC != playbackCRC && !m_crcInfo.sawCRCMismatch())
 		{
 			//Kris: Patch 1.01 November 10, 2003 (integrated changes from Matt Campbell)
@@ -1032,7 +1043,7 @@ void RecorderClass::handleCRCMessage(UnsignedInt newCRC, Int playerIndex, Bool f
 
 			// TheSuperHackers @tweak Pause the game on mismatch.
 			// But not when a window with focus is opened, because that can make resuming difficult.
-			if (TheWindowManager->winGetFocus() == nullptr)
+			if (TheWindowManager->winGetFocus() == nullptr && !logCRCs)
 			{
 				Bool pause = TRUE;
 				Bool pauseMusic = FALSE;

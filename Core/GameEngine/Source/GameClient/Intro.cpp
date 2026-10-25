@@ -19,6 +19,7 @@
 #include "PreRTS.h"
 #include "GameClient/Intro.h"
 
+#include "Common/FileSystem.h"
 #include "Common/FramePacer.h"
 #include "Common/GameLOD.h"
 
@@ -29,6 +30,10 @@
 #include "GameClient/GlobalLanguage.h"
 #include "GameClient/Image.h"
 
+// The logo of this mod, a loose file the install script copies from assets/Art into the game folder.
+static const char ModLogoPath[] = "Art/Textures/ModIntroLogo.tga";
+static const char ModLogoTexture[] = "ModIntroLogo.tga";
+static const char ModLogoImageName[] = "ModIntroLogo";
 
 Intro::DisplayEntity::~DisplayEntity()
 {
@@ -45,9 +50,13 @@ Intro::Intro()
 	{
 		// Please be kind and do not remove the EA logo movie. This game was built by EA. It lasts just 3 seconds.
 		m_allowedStateFlags |= 1u << IntroState_EALogoMovie;
-		// Please be kind and do not remove the custom logo screen when building on top of the work of The Super Hackers.
-		m_allowedStateFlags |= 1u << IntroState_TheSuperHackersWait;
-		m_allowedStateFlags |= 1u << IntroState_TheSuperHackers;
+		// This build shows the logo of this mod instead of The Super Hackers logo screen.
+		// The Super Hackers are credited in the README (this build is based on their GeneralsGameCode).
+		if (TheFileSystem->doesFileExist(ModLogoPath))
+		{
+			m_allowedStateFlags |= 1u << IntroState_ModLogoWait;
+			m_allowedStateFlags |= 1u << IntroState_ModLogo;
+		}
 	}
 
 	if (TheGlobalData->m_playSizzle)
@@ -81,6 +90,8 @@ void Intro::update()
 		switch (m_currentState)
 		{
 		case IntroState_EALogoMovie: doEALogoMovie(); break;
+		case IntroState_ModLogoWait: doAsyncWait(500); break;
+		case IntroState_ModLogo: doModLogo(); break;
 		case IntroState_TheSuperHackersWait: doAsyncWait(800); break;
 		case IntroState_TheSuperHackers: doTheSuperHackers(); break;
 		case IntroState_SizzleMovieWait: doAsyncWait(1000); break;
@@ -94,6 +105,7 @@ void Intro::draw()
 {
 	switch (m_currentState)
 	{
+		case IntroState_ModLogo:
 		case IntroState_TheSuperHackers: drawDisplayEntities(); break;
 	}
 }
@@ -114,6 +126,7 @@ Bool Intro::skipCurrentIntroStage()
 		enterNextState();
 		break;
 
+	case IntroState_ModLogo:
 	case IntroState_TheSuperHackers:
 		enterNextState();
 		break;
@@ -128,6 +141,53 @@ void Intro::doEALogoMovie()
 		TheDisplay->playMovie("EALogoMovie");
 	else
 		TheDisplay->playMovie("EALogoMovie640");
+}
+
+void Intro::doModLogo()
+{
+	// The logo is a 2048x1024 texture made by tools/make_intro_logo.py from 16:9 artwork. It is drawn back at 16:9,
+	// as large as the screen allows, on the black screen.
+	const Real logoAspect = 16.0f / 9.0f;
+
+	const Image *image = TheMappedImageCollection->findImageByName(ModLogoImageName);
+	if (image == nullptr)
+	{
+		Image *newImage = newInstance(Image);
+		newImage->setName(ModLogoImageName);
+		newImage->setFilename(ModLogoTexture);
+		newImage->setStatus(IMAGE_STATUS_NONE);
+		Region2D uv;
+		uv.lo.x = 0.0f;
+		uv.lo.y = 0.0f;
+		uv.hi.x = 1.0f;
+		uv.hi.y = 1.0f;
+		newImage->setUV(&uv);
+		newImage->setTextureWidth(2048);
+		newImage->setTextureHeight(1024);
+		TheMappedImageCollection->addImage(newImage);
+		image = newImage;
+	}
+
+	const Int screenWidth = TheDisplay->getWidth();
+	const Int screenHeight = TheDisplay->getHeight();
+	Int sizeX = screenWidth;
+	Int sizeY = (Int)(screenWidth / logoAspect);
+	if (sizeY > screenHeight)
+	{
+		sizeY = screenHeight;
+		sizeX = (Int)(screenHeight * logoAspect);
+	}
+
+	m_displayEntities.clear();
+	m_displayEntities.resize(1);
+	DisplayEntity& e = m_displayEntities[0];
+	e.image = image;
+	e.sizeX = sizeX;
+	e.sizeY = sizeY;
+	e.centerOffsetY = -sizeY / 2;
+
+	doAsyncWait(4000);
+	m_fadeValue = 0.0f;
 }
 
 struct DisplaySetting

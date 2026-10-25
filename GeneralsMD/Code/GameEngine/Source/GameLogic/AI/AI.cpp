@@ -29,6 +29,7 @@
 
 #include "Common/CRCDebug.h"
 #include "Common/GameState.h"
+#include "Common/LogicProfile.h"
 #include "Common/PerfTimer.h"
 #include "Common/Player.h"
 #include "Common/PlayerList.h"
@@ -356,7 +357,10 @@ void AI::reset()
 void AI::update()
 {
 	// Do pathfinding.
-	m_pathfinder->processPathfindQueue();
+	{
+		LogicProfile::Scope timer( LogicProfile::SEC_PATHFIND );
+		m_pathfinder->processPathfindQueue();
+	}
 
 	// run player updates
 	{

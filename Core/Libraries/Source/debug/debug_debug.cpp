@@ -35,6 +35,7 @@
 #include <windows.h>
 #include <Utility/stdio_adapter.h>
 #include <Utility/stringex.h>
+#include <intrin.h>
 #include <new>      // needed for placement new prototype
 
 // a little dummy variable that makes the linker actually include
@@ -307,7 +308,9 @@ bool Debug::SkipNext()
   // do not implement this function inline, we do need
   // a valid frame pointer here!
   unsigned help;
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) && defined(_WIN64)
+  help = (unsigned)(uintptr_t)_ReturnAddress();
+#elif defined(_MSC_VER)
   _asm
   {
     mov eax,[ebp+4]   // return address
@@ -436,10 +439,7 @@ bool Debug::AssertDone()
           break;
         case IDRETRY:
 #if defined(_MSC_VER)
-          _asm
-          {
-            int 0x03
-          }
+          __debugbreak();
 #elif defined(__GNUC__)
           __builtin_trap();
 #else
@@ -713,10 +713,7 @@ bool Debug::CrashDone(bool die)
             break;
           case IDRETRY:
 #if defined(_MSC_VER)
-            _asm
-            {
-              int 0x03
-            }
+          __debugbreak();
 #elif defined(__GNUC__)
             __builtin_trap();
 #else

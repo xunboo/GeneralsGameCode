@@ -28,6 +28,8 @@
 // Subsequently : John Ahlquist 2002 and a cast of thousands.
 
 #include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
+#include <intrin.h>
+extern "C" IMAGE_DOS_HEADER __ImageBase;	// for -replayTraceObject
 
 #define DEFINE_LOCOMOTORSET_NAMES					// for TheLocomotorSetNames[]
 #define DEFINE_AUTOACQUIRE_NAMES
@@ -395,6 +397,47 @@ except by the pathfinder during pathfind queue processing.  jba */
 //-------------------------------------------------------------------------------------------------
 void AIUpdateInterface::doPathfind( PathfindServicesInterface *pathfinder )
 {
+	const Bool trace = TheGlobalData->m_replayTraceObject != 0 && TheGlobalData->m_replayTraceObject == (UnsignedInt)getObject()->getID() &&
+		!TheGlobalData->m_replayCRCTrace.isEmpty();
+	if (!trace) {
+		doPathfindInternal(pathfinder);
+		return;
+	}
+
+	// -replayTraceObject: what was asked and what came out, to compare two runs of a replay.
+	const Coord3D pos = *getObject()->getPosition();
+	const Coord3D dest = m_requestedDestination;
+	const Int flags = (m_waitingForPath ? 1 : 0) | (m_isSafePath ? 2 : 0) | (m_isApproachPath ? 4 : 0) | (m_isAttackPath ? 8 : 0) |
+		(m_isBlockedAndStuck ? 16 : 0) | (m_isFinalGoal ? 32 : 0);
+	doPathfindInternal(pathfinder);
+	FILE *f = fopen(TheGlobalData->m_replayCRCTrace.str(), "a");
+	if (f) {
+		const UnsignedInt *p = (const UnsignedInt *)&pos;
+		const UnsignedInt *d = (const UnsignedInt *)&dest;
+		const UnsignedInt *a = (const UnsignedInt *)&m_requestedDestination;
+		fprintf(f, "  pathfind frame %u flags %X pos %8.8X %8.8X dest %8.8X %8.8X after %8.8X %8.8X path %8.8X waiting %d\n",
+			TheGameLogic->getFrame(), flags, p[0], p[1], d[0], d[1], a[0], a[1], pathFingerprint(m_path), m_waitingForPath ? 1 : 0);
+		fclose(f);
+	}
+}
+
+UnsignedInt AIUpdateInterface::pathFingerprint( const Path *path )
+{
+	if (path == nullptr) {
+		return 0;
+	}
+	XferCRC crc;
+	crc.open("trace");
+	for (const PathNode *node = ((Path *)path)->getFirstNode(); node; node = node->getNext()) {
+		Coord3D pos = *node->getPosition();
+		crc.xferUser(&pos, sizeof(pos));
+	}
+	crc.close();
+	return crc.getCRC();
+}
+
+void AIUpdateInterface::doPathfindInternal( PathfindServicesInterface *pathfinder )
+{
 	if (!m_waitingForPath) {
 		return;
 	}
@@ -472,12 +515,85 @@ void AIUpdateInterface::doPathfind( PathfindServicesInterface *pathfinder )
 #endif
 }
 
+/* Tells the pathfinder which search doPathfind() will most likely start with, so it can be computed ahead of time
+on a worker thread. This must not change anything. A wrong guess only costs time: the pathfinder uses a precomputed
+result only when doPathfind() really asks for exactly the same search on an unchanged map. */
+//-------------------------------------------------------------------------------------------------
+Bool AIUpdateInterface::predictPathfind( PathfindPrediction &prediction )
+{
+	if (!m_waitingForPath || m_isAttackPath) {
+		return FALSE;
+	}
+	Object *obj = getObject();
+	prediction.locomotorSet = &m_locomotorSet;
+	prediction.from = *obj->getPosition();
+	prediction.blocked = FALSE;
+	prediction.pathCostMultiplier = 0.0f;
+	if (m_isSafePath) {
+		// Same repulsor positions and distance as doPathfind().
+		prediction.kind = PathfindPrediction::FIND_SAFE_PATH;
+		Coord3D pos1;
+		pos1.set(-1000,-1000,0);
+		Object *repulsor = TheGameLogic->findObjectByID(m_repulsor1);
+		if (repulsor) {
+			pos1 = *repulsor->getPosition();
+		}
+		Coord3D pos2 = pos1;
+		repulsor = TheGameLogic->findObjectByID(m_repulsor2);
+		if (repulsor) {
+			pos2 = *repulsor->getPosition();
+		}
+		prediction.to = pos1;
+		prediction.to2 = pos2;
+		prediction.pathCostMultiplier = obj->getVisionRange() + TheAI->getAiData()->m_repulsedDistance;
+		return TRUE;
+	}
+	if (m_isApproachPath) {
+		if (!isDoingGroundMovement()) {
+			return FALSE;
+		}
+		prediction.kind = PathfindPrediction::FIND_CLOSEST_PATH;
+		prediction.to = m_requestedDestination;
+		prediction.blocked = m_isBlockedAndStuck;
+		prediction.pathCostMultiplier = 0.2f;
+		return TRUE;
+	}
+	// computePath(): patchPath() when stuck, no search for quick paths, else findPath() with the ignored obstacle set.
+	if (m_isBlockedAndStuck || canComputeQuickPath()) {
+		return FALSE;
+	}
+	prediction.kind = PathfindPrediction::FIND_PATH;
+	prediction.to = m_requestedDestination;
+	prediction.ignoreObstacleID = getIgnoredObstacleID();
+	return TRUE;
+}
+
 /* Requests a path to be found.  Note that if it is possible to do it without having to use the
 pathfinder (air units just move point to point) it generates the path immediately.  Otherwise the path
 will be processed when we get to the front of the pathfind queue. jba */
 //-------------------------------------------------------------------------------------------------
 void AIUpdateInterface::requestPath( Coord3D *destination, Bool isFinalGoal )
 {
+	if (TheGlobalData->m_replayTraceObject != 0 && TheGlobalData->m_replayTraceObject == (UnsignedInt)getObject()->getID() &&
+		!TheGlobalData->m_replayCRCTrace.isEmpty() && TheGameLogic->getFrame() >= TheGlobalData->m_replayCRCTraceFrom &&
+		TheGameLogic->getFrame() <= TheGlobalData->m_replayCRCTraceTo)
+	{
+		// -replayTraceObject: who asks for a path (return address relative to the image, symbolize with the pdb)
+		FILE *f = fopen( TheGlobalData->m_replayCRCTrace.str(), "a" );
+		if (f)
+		{
+			fprintf( f, "  requestPath frame %u caller +%llX state %d dest %.1f %.1f final %d pathTimestamp %u blockedStuck %d\n", TheGameLogic->getFrame(),
+				(unsigned long long)((char *)_ReturnAddress() - (char *)&__ImageBase), (Int)getStateMachine()->getCurrentStateID(),
+				destination->x, destination->y, isFinalGoal ? 1 : 0, m_pathTimestamp, m_isBlockedAndStuck ? 1 : 0 );
+			void *stack[12];	// symbolize with the pdb as well
+			const USHORT frames = CaptureStackBackTrace( 0, 12, stack, nullptr );
+			fprintf( f, "    stack" );
+			for (USHORT i = 0; i < frames; i++)
+				fprintf( f, " +%llX", (unsigned long long)((char *)stack[i] - (char *)&__ImageBase) );
+			fprintf( f, "\n" );
+			fclose( f );
+		}
+	}
 
 	if (m_locomotorSet.getValidSurfaces() == 0) {
 		DEBUG_CRASH(("Attempting to path immobile unit."));

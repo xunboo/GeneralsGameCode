@@ -103,6 +103,8 @@ protected:
 
 protected:
 	void adjustBuildList(BuildListInfo *list);
+	void processHardExpansion();	///< more production, income, defences on hard difficulty (AISkirmishHard.cpp)
+	void processHardArmy();			///< idle factories build an army that goes out in big waves (AISkirmishHard.cpp)
 	Int getMyEnemyPlayerIndex();
 	void acquireEnemy();
 

@@ -1594,6 +1594,10 @@ void AIGroup::groupMoveToPosition( const Coord3D *p_posIn, Bool addWaypoint, Com
   Coord3D position = *p_posIn;
   Coord3D *pos = &position;
 
+	// Big ground armies move as a block (front line tanks, back line artillery, narrower at chokepoints).
+	if (!addWaypoint && friend_moveInFormation(pos, cmdSource))
+		return;
+
 	Bool didInfantry = false;
 	Bool didVehicles = false;
 	// compute current centroid of the team

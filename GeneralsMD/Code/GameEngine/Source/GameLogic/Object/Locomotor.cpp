@@ -1277,7 +1277,7 @@ void Locomotor::moveTowardsPositionTreads(Object* obj, PhysicsBehavior *physics,
 //	Real angle = obj->getOrientation();
 //	Real relAngle = ThePartitionManager->getRelativeAngle2D( obj, &goalPos );
 //	Real desiredAngle = angle + relAngle;
-	Real relAngle ;
+	Real relAngle = 0.0f;
 	PhysicsTurningType rotating = rotateTowardsPosition(obj, goalPos, &relAngle);
 	physics->setTurning(rotating);
 
@@ -2249,7 +2249,12 @@ PhysicsTurningType Locomotor::rotateObjAroundLocoPivot(Object* obj, const Coord3
 		Real dx =goalPos.x - turnPos.x;
 		Real dy = goalPos.y - turnPos.y;
 		// If we are very close to the goal, we twitch due to rounding error.  So just return. jba.
-		if (WWMath::Fabs(dx)<0.1f && WWMath::Fabs(dy)<0.1f) return TURN_NONE;
+		// The callers use relAngle afterwards (moveTowardsPositionTreads did not even initialize it), so it must be set here too:
+		// otherwise whatever was on the stack decides between full speed and braking, and that differs from run to run.
+		if (WWMath::Fabs(dx)<0.1f && WWMath::Fabs(dy)<0.1f) {
+			if (relAngle) *relAngle = 0.0f;
+			return TURN_NONE;
+		}
 		Real desiredAngle = WWMath::Atan2(dy, dx);
 		Real amount = stdAngleDiff(desiredAngle, angle);
 		if (relAngle) *relAngle = amount;

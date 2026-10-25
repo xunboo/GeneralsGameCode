@@ -516,19 +516,30 @@ void SidesList::prepareForMP_or_Skirmish()
 			gotScripts = true;
 		}
 	}
+	FILE *dbgLog = fopen("skirmish_sides.log", "w");
+	if (dbgLog)
+		fprintf(dbgLog, "prepareForMP_or_Skirmish: gotScripts %d, map teams copied %d, skirmish sides %d\n", (int)gotScripts, m_skirmishTeamrec.getNumTeams(), m_numSkirmishSides);
 	if (!gotScripts) {
 		AsciiString path = "data\\Scripts\\SkirmishScripts.scb";
 		DEBUG_LOG(("Skirmish map using standard scripts"));
 		m_skirmishTeamrec.clear();
 		CachedFileInputStream theInputStream;
-		if (theInputStream.open(path)) {
+		const Bool opened = theInputStream.open(path);
+		if (dbgLog)
+			fprintf(dbgLog, "opened %s: %d\n", path.str(), (int)opened);
+		if (opened) {
 				ChunkInputStream *pStrm = &theInputStream;
 				DataChunkInput file( pStrm );
 				file.registerParser( "PlayerScriptsList", AsciiString::TheEmptyString, ScriptList::ParseScriptsDataChunk );
 				file.registerParser( "ScriptsPlayers", AsciiString::TheEmptyString, ParsePlayersDataChunk );
 				file.registerParser( "ScriptTeams", AsciiString::TheEmptyString, ParseTeamsDataChunk );
-				if (!file.parse(this)) {
+				const Bool parsed = file.parse(this);
+				if (dbgLog)
+					fprintf(dbgLog, "parse result %d, skirmish teams after parse %d\n", (int)parsed, m_skirmishTeamrec.getNumTeams());
+				if (!parsed) {
 					DEBUG_LOG(("ERROR - Unable to read in skirmish scripts."));
+					if (dbgLog)
+						fclose(dbgLog);
 					return;
 				}
 				ScriptList *scripts[MAX_PLAYER_COUNT];
@@ -562,6 +573,8 @@ void SidesList::prepareForMP_or_Skirmish()
 
 
 	}
+	if (dbgLog)
+		fclose(dbgLog);
 }
 
 

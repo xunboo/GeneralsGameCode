@@ -149,7 +149,7 @@ void Renderer::Clear(bool clear_color, bool clear_z_stencil,
 
 void Renderer::Set_Viewport(const RenderViewport & viewport)
 {
-    D3DVIEWPORT8 vp;
+    GfxViewport vp;
     vp.X      = viewport.x;
     vp.Y      = viewport.y;
     vp.Width  = viewport.width;

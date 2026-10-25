@@ -28,7 +28,12 @@
 
 
 
-#define D3DFVF_POINTVERTEX (D3DFVF_XYZ)
+#ifndef GFX_FVF_POINTVERTEX
+#define GFX_FVF_POINTVERTEX (GFX_FVF_XYZ)
+#endif
+#ifndef D3DFVF_POINTVERTEX
+#define D3DFVF_POINTVERTEX (GFX_FVF_POINTVERTEX)
+#endif
 #define SNOW_BUFFER_SIZE 4096	//size of vertex buffer holding particles.
 #define SNOW_BATCH_SIZE	2048	//we render at most this many particles per drawprimitive call.  This number * 6 must be less than 65536 to fit into index buffer.
 
@@ -78,7 +83,6 @@ Bool W3DSnowManager::ReAcquireResources()
 
 	if (TheWeatherSetting->m_usePointSprites && DX8Wrapper::Get_Current_Caps()->Support_PointSprites())
 	{
-		LPDIRECT3DDEVICE8 m_pDev=DX8Wrapper::_Get_D3D_Device8();
 
 		DEBUG_ASSERTCRASH(m_pDev, ("Trying to ReAcquireResources on W3DSnowManager without device"));
 
@@ -86,12 +90,11 @@ Bool W3DSnowManager::ReAcquireResources()
 		{
 			// Create vertex buffer
 
-			if (FAILED(m_pDev->CreateVertexBuffer
-			(
+			if (FAILED(DX8Wrapper::Raw_Create_Vertex_Buffer(
 				SNOW_BUFFER_SIZE*sizeof(POINTVERTEX),
-				D3DUSAGE_WRITEONLY|D3DUSAGE_DYNAMIC|D3DUSAGE_POINTS,
-				D3DFVF_POINTVERTEX,
-				D3DPOOL_DEFAULT,
+				GFX_USAGE_WRITEONLY|GFX_USAGE_DYNAMIC|GFX_USAGE_POINTS,
+				GFX_FVF_POINTVERTEX,
+				GFX_POOL_DEFAULT,
 				&m_VertexBufferD3D
 			)))
 				return FALSE;
@@ -270,7 +273,7 @@ void W3DSnowManager::renderSubBox(RenderInfoClass &rinfo, Int originX, Int origi
 		POINTVERTEX* verts;
 
 		if(m_VertexBufferD3D->Lock(m_dwBase * sizeof(POINTVERTEX), batchSize * sizeof(POINTVERTEX),
-			(unsigned char **) &verts, m_dwBase ? D3DLOCK_NOOVERWRITE : D3DLOCK_DISCARD) != D3D_OK )
+			(unsigned char **) &verts, m_dwBase ? GFX_LOCK_NOOVERWRITE : GFX_LOCK_DISCARD) != D3D_OK )
 			return;	//couldn't lock buffer.
 
 		Int numberInBatch=0;
@@ -315,7 +318,7 @@ flush_particles:
 		if (numberInBatch)
 		{
 			Debug_Statistics::Record_DX8_Polys_And_Vertices(numberInBatch*2,numberInBatch*4,ShaderClass::_PresetOpaqueShader);
-			DX8Wrapper::_Get_D3D_Device8()->DrawPrimitive( D3DPT_POINTLIST, m_dwBase, numberInBatch);
+			DX8Wrapper::Raw_Draw_Primitive( GFX_PT_POINTLIST, m_dwBase, numberInBatch);
 			totalPart -= numberInBatch;
 			m_dwBase += numberInBatch;
 		}
@@ -394,7 +397,7 @@ void W3DSnowManager::render(RenderInfoClass &rinfo)
 	m_heightTraveled=m_time*m_velocity+cameraOffset;	//height that snow flake traveled this frame.
 
 	Matrix4x4 identity(true);
-	DX8Wrapper::Set_Transform(D3DTS_WORLD,identity);
+	DX8Wrapper::Set_Transform(GFX_TS_WORLD,identity);
 
 	DX8Wrapper::Set_Shader(ShaderClass::_PresetAlphaShader);
 
@@ -422,17 +425,17 @@ void W3DSnowManager::render(RenderInfoClass &rinfo)
 	DX8Wrapper::Apply_Render_State_Changes();
 
     // Set the render states for using point sprites
-	DX8Wrapper::Set_DX8_Render_State( D3DRS_POINTSPRITEENABLE, TRUE );
-    DX8Wrapper::Set_DX8_Render_State( D3DRS_POINTSCALEENABLE,  TRUE );
-    DX8Wrapper::Set_DX8_Render_State( D3DRS_POINTSIZE,     F2DW(m_pointSize) );
-    DX8Wrapper::Set_DX8_Render_State( D3DRS_POINTSIZE_MIN, F2DW(m_minPointSize) );
-    DX8Wrapper::Set_DX8_Render_State( D3DRS_POINTSIZE_MAX, F2DW(m_maxPointSize) );
-    DX8Wrapper::Set_DX8_Render_State( D3DRS_POINTSCALE_A,  F2DW(0.00f) );
-    DX8Wrapper::Set_DX8_Render_State( D3DRS_POINTSCALE_B,  F2DW(0.00f) );
-    DX8Wrapper::Set_DX8_Render_State( D3DRS_POINTSCALE_C,  F2DW(1.00f) );
+	DX8Wrapper::Set_DX8_Render_State( GFX_RS_POINTSPRITEENABLE, TRUE );
+    DX8Wrapper::Set_DX8_Render_State( GFX_RS_POINTSCALEENABLE,  TRUE );
+    DX8Wrapper::Set_DX8_Render_State( GFX_RS_POINTSIZE,     F2DW(m_pointSize) );
+    DX8Wrapper::Set_DX8_Render_State( GFX_RS_POINTSIZE_MIN, F2DW(m_minPointSize) );
+    DX8Wrapper::Set_DX8_Render_State( GFX_RS_POINTSIZE_MAX, F2DW(m_maxPointSize) );
+    DX8Wrapper::Set_DX8_Render_State( GFX_RS_POINTSCALE_A,  F2DW(0.00f) );
+    DX8Wrapper::Set_DX8_Render_State( GFX_RS_POINTSCALE_B,  F2DW(0.00f) );
+    DX8Wrapper::Set_DX8_Render_State( GFX_RS_POINTSCALE_C,  F2DW(1.00f) );
 
-	DX8Wrapper::_Get_D3D_Device8()->SetStreamSource( 0, m_VertexBufferD3D, sizeof(POINTVERTEX) );
-    DX8Wrapper::_Get_D3D_Device8()->SetVertexShader( D3DFVF_POINTVERTEX );
+	DX8Wrapper::Raw_Set_Stream_Source( 0, m_VertexBufferD3D, sizeof(POINTVERTEX) );
+    DX8Wrapper::Raw_Set_Vertex_Shader( GFX_FVF_POINTVERTEX );
 	m_dwBase = SNOW_BUFFER_SIZE;	//start with a new vertex buffer each frame.
 
 	m_leafDim = 45;	//cull boxes that are 20x20 emitters in size. Making them much smaller will result in too many draw calls.
@@ -444,8 +447,8 @@ void W3DSnowManager::render(RenderInfoClass &rinfo)
 	renderSubBox(rinfo,cubeOriginX,cubeOriginY,cubeDimX,cubeDimY);
 
 	// Reset render states
-    DX8Wrapper::Set_DX8_Render_State( D3DRS_POINTSPRITEENABLE, FALSE );
-    DX8Wrapper::Set_DX8_Render_State( D3DRS_POINTSCALEENABLE,  FALSE );
+    DX8Wrapper::Set_DX8_Render_State( GFX_RS_POINTSPRITEENABLE, FALSE );
+    DX8Wrapper::Set_DX8_Render_State( GFX_RS_POINTSCALEENABLE,  FALSE );
 
 }
 
@@ -485,7 +488,7 @@ void W3DSnowManager::renderAsQuads(RenderInfoClass &rinfo, Int cubeOriginX, Int 
 	}
 
 	Matrix4x4 identity(true);
-	DX8Wrapper::Set_Transform(D3DTS_VIEW,identity);
+	DX8Wrapper::Set_Transform(GFX_TS_VIEW,identity);
 
 	DX8Wrapper::Set_Index_Buffer(m_indexBuffer,0);
 

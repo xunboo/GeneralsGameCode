@@ -1,110 +1,530 @@
-[![GitHub Release](https://img.shields.io/github/v/release/TheSuperHackers/GeneralsGameCode?include_prereleases&sort=date&display_name=tag&style=flat&label=Release)](https://github.com/TheSuperHackers/GeneralsGameCode/releases)
-![GitHub milestone details](https://img.shields.io/github/milestones/progress-percent/TheSuperHackers/GeneralsGameCode/3)
-![GitHub milestone details](https://img.shields.io/github/milestones/progress-percent/TheSuperHackers/GeneralsGameCode/1)
-![GitHub milestone details](https://img.shields.io/github/milestones/progress-percent/TheSuperHackers/GeneralsGameCode/4)
-![GitHub milestone details](https://img.shields.io/github/milestones/progress-percent/TheSuperHackers/GeneralsGameCode/5)
-![GitHub milestone details](https://img.shields.io/github/milestones/progress-percent/TheSuperHackers/GeneralsGameCode/6)
+# Generals + Zero Hour: 64-bit program with a Vulkan renderer (experimental fork)
 
-[![GitHub issues by-label](https://img.shields.io/github/issues/TheSuperHackers/GeneralsGameCode/bug?style=flat&label=Bug%20Issues&labelColor=%23c4c4c4&color=%23424242)](https://github.com/TheSuperHackers/GeneralsGameCode/issues?q=label%3ABug)
-[![GitHub issues by-label](https://img.shields.io/github/issues/TheSuperHackers/GeneralsGameCode/enhancement?style=flat&label=Enhancement%20Issues&labelColor=%23c4c4c4&color=%23424242)](https://github.com/TheSuperHackers/GeneralsGameCode/issues?q=label%3AEnhancement)
-[![GitHub issues by-label](https://img.shields.io/github/issues/TheSuperHackers/GeneralsGameCode/major?style=flat&label=Major%20Issues&labelColor=%23c4c4c4&color=%23424242)](https://github.com/TheSuperHackers/GeneralsGameCode/issues?q=label%3AMajor)
-[![GitHub issues by-label](https://img.shields.io/github/issues/TheSuperHackers/GeneralsGameCode/critical?style=flat&label=Critical%20Issues&labelColor=%23c4c4c4&color=%23424242)](https://github.com/TheSuperHackers/GeneralsGameCode/issues?q=label%3ACritical)
-[![GitHub issues by-label](https://img.shields.io/github/issues/TheSuperHackers/GeneralsGameCode/blocker?style=flat&label=Blocker%20Issues&labelColor=%23c4c4c4&color=%23424242)](https://github.com/TheSuperHackers/GeneralsGameCode/issues?q=label%3ABlocker)
+An experimental, personal fork of [TheSuperHackers/GeneralsGameCode](https://github.com/TheSuperHackers/GeneralsGameCode)
+(the community-maintained source of *Command & Conquer: Generals* and *Zero Hour*, originally released by EA under the
+GPL v3). **This version is based on the community fix version**: it is the community's bug-fix code base (the one behind the
+"Community Patch" builds) with the changes below on top. All fixes and the retail-compatibility work come from that project,
+not from this fork.
 
-# Welcome to the Generals Game Code Project
+It builds both **Zero Hour** and the base game **Generals** as a **64-bit program** and gives them an own **Vulkan renderer**
+with updated effects: water, soft shadows, ambient occlusion, bloom, anti-aliasing, dynamic lights around explosions, clouds
+and more. Everything is **on by default**, and one setting (`GraphicsMode = classic`) switches back to the original rendering.
 
-GeneralsGameCode is a community-driven project aimed at fixing and improving the classic RTS game, *Command &
-Conquer: Generals* and its expansion *Zero Hour*. This repository contains the source code for both games, with a
-primary focus on *Zero Hour*.
+> **Credit:** all of the actual work in this repository (code, build scripts, shaders, patches, documentation) was done by
+> **Claude Code** (Anthropic's AI coding agent). The person who set the repository up only gave prompts and tested the
+> results; they did not write or engineer any of it. The underlying game code and its fixes come from the community project
+> and EA's original release, see [Licenses and credits](#licenses-and-credits).
 
-Additionally, there is a complementary project repository for fixing and improving game data and assets such as
-INI scripts, GUI, AI, maps, models, textures, audio, localization. You can find it
-[here](https://github.com/TheSuperHackers/GeneralsGamePatch/) and contribute to it as well.
+> **This version:** continued by **dement123** (Nexus Mods): gameplay and economy changes, hard skirmish AI, deterministic
+> parallel pathfinding, AI and engine bug fixes, and fixes for the Vulkan port (frame timing, sound, ground effects). The
+> code was written with Claude Code; dement123 directed and tested it.
 
-## Project Overview
+> **One-time project: no support, no updates.**
+> This was done once, as a personal experiment. It will **not** be troubleshot, answered in issues, or kept up to date with
+> upstream or with new tools. Fork it, change it, take pieces of it, do what you like within the license. Treat it as a
+> starting point, not as a maintained product.
 
-The game was originally developed using Visual Studio 6 and C++98. We've updated the code to be compatible with Visual
-Studio 2022 and C++20.
+> **Please read this first.**
+> This is a hobby project with one test machine. It works there in the situations listed under [What was tested](#what-was-tested).
+> Everything else is unknown. Expect rough edges and crashes. It does **not** contain the games: you need your own legitimate
+> copy of *Command & Conquer: Generals* and/or *Zero Hour*.
 
-The initial goal of this project is to fix critical bugs and implement improvements while maintaining compatibility with
-the original *Generals* version 1.08 and *Zero Hour* version 1.04. Once we can break retail compatibility, more fixes
-and features will be possible to implement.
+Not affiliated with, or endorsed by, Electronic Arts. *Command & Conquer*, *Generals* and *Zero Hour* are trademarks of their owners.
 
-## Current Focus and Future Plans
+---
 
-Here's an overview of our current focus and future plans
+## Contents
 
-- **Modernizing the Codebase**: Transitioning to modern C++ standards and refactoring old code.
-- **Critical Bug Fixes**: Fixing game-breaking issues (e.g., fullscreen crash).
-- **Minor Bug Fixes**: Addressing minor bugs (e.g., UI issues, graphical glitches).
-- **Cross-Platform Support**: Adding support for more platforms (e.g., Linux, macOS).
-- **Engine Improvements**: Enhancing the game engine to improve performance and stability.
-- **Client-Side Features**: Enhancing the game's client with features such as an improved replay viewer and UI updates.
-- **Multiplayer Improvements**: Implementing a new game server and an upgraded matchmaking lobby.
-- **Tooling Improvements**: Developing new or improving existing tools for modding and game development.
-- **Community-Driven Improvements**: Once the community grows, we plan to incorporate more features, updates, and
-  changes based on player feedback.
+1. [Install](#install)
+2. [Running](#running)
+3. [What you get](#what-you-get)
+4. [The two renderers](#the-two-renderers)
+5. [What was tested](#what-was-tested)
+6. [All settings and flags](#all-settings-and-flags)
+7. [How the enhancements work](#how-the-enhancements-work)
+8. [Other changes](#other-changes)
+9. [Known problems and limitations](#known-problems-and-limitations)
+10. [Troubleshooting](#troubleshooting)
+11. [Building it yourself](#building-it-yourself)
+12. [Repository layout of the additions](#repository-layout-of-the-additions)
+13. [Licenses and credits](#licenses-and-credits)
 
-## Running the Game
+---
 
-To run *Generals* or *Zero Hour* using this project, you need to have the original *Command & Conquer: Generals and Zero Hour* game
-installed. The easiest way to get it is through *Command & Conquer The Ultimate Collection*
-on [Steam](https://store.steampowered.com/bundle/39394). Once the game is ready, download the latest version of the
-project from [GitHub Releases](https://github.com/TheSuperHackers/GeneralsGameCode/releases), extract the necessary 
-files, and follow the instructions in the [Wiki](https://github.com/TheSuperHackers/GeneralsGameCode/wiki).
+## Install
 
+You need your own installed copy of the game(s) and a graphics card with a **Vulkan 1.3** driver (any current NVIDIA, AMD or Intel
+driver should have it; only an NVIDIA card was tested). Nothing of the original game is modified or replaced.
 
-## Joining the Community
+1. Download `release_<version>.zip` (the newest one, for example `release_0.4.0.zip`) from the
+   [Releases page](https://github.com/JaChriCaeTob/ModernGeneralsZH/releases) or from the root of this repository and unzip it anywhere.
+   It has one folder per game and a `README-INSTALL.txt`:
+   ```
+   release_0.4.0.zip
+     README-INSTALL.txt
+     Zero Hour\   for Command & Conquer: Generals - Zero Hour
+     Generals\    for Command & Conquer: Generals (the base game)
+   ```
+2. Find the game folder: the one that contains the `.big` files (`INIZH.big` for Zero Hour, `INI.big` for Generals).
+   With the EA App both games usually sit next to each other, for example
+   ```
+   ...\Command and Conquer Generals Zero Hour\Command and Conquer Generals Zero Hour     <- Zero Hour
+   ...\Command and Conquer Generals Zero Hour\Command and Conquer Generals               <- Generals
+   ```
+3. Copy the **content** of the matching folder (`x64\`, `tools\` and the `.bat` files, not the folder itself) into that game folder.
+   Zero Hour files go to the Zero Hour folder, Generals files to the Generals folder. Do not mix them. You can install one game or both.
+4. Start **`Play-Updated.bat`** (updated graphics) or **`Play-Original.bat`** (original rendering, handy for comparing).
+   Always start the game through these files, never through the `.exe` in `x64\`, and never copy that `.exe` over an original game file.
+5. Optional: run **`Install-OptionsMenu.bat`** (needs Python 3) to get the graphics check boxes in *Options > advanced display options*.
+   It reads the menu from your own game files and writes a patched copy as a loose file into `Window\Menus\`. Without it every effect
+   is still available through `Options.ini` (see [All settings](#all-settings-and-flags)).
+6. Optional: run **`Skip-IntroMovies.bat`** for a quick start without the EA logo and trailer. Nothing is deleted; the movies are moved
+   to `IntroMovies_off` and **`Restore-IntroMovies.bat`** puts them back.
 
-You can chat and discuss the development of the project on our [Discord channel](https://www.community-outpost.com/discord) to get the latest updates,
-report bugs, and contribute to the project!
+**Uninstall:** delete the `x64`, `tools` and `Art` folders and the `.bat` files you copied and, if you ran `Install-OptionsMenu.bat`, the loose
+`Window` folder (run `Restore-IntroMovies.bat` first if you used the skip script).
 
-## Building the Game Yourself
+The zips contain no game files. Each is made by `tools\make-release.ps1 -Version <version>` from a finished build.
 
-We provide support for building the project on Windows and Linux. For detailed build instructions, check the
-[Wiki](https://github.com/TheSuperHackers/GeneralsGameCode/wiki/build_guides), which includes guides for VS6, VS2022,
-Docker, CLion, and links to forks supporting additional versions.
+## Running
 
-### Quick Start
+`Play-Updated.bat` starts the game with the updated graphics (native Vulkan renderer, all enhancements, the settings of `Options.ini` apply).
+`Play-Original.bat` starts it with the original rendering: Direct3D 8 on DXVK and none of the added effects, including the updated water and the
+shockwaves (it sets `GENERALS_GFX=d3d8` and `GENERALS_ORIGINAL=1`). Both start windowed (`-win`); remove that word inside the `.bat` for fullscreen.
+Extra arguments are passed through, for example `Play-Updated.bat -xres 1920 -yres 1080`. A log of the native renderer is written to
+`gfx_vulkan.log` in the game folder.
 
-**Windows (Visual Studio 2022)**
-```bash
-cmake --preset win32
-cmake --build build/win32 --config Release
+The two games keep separate settings. `Options.ini` lives in `%USERPROFILE%\Documents\Command and Conquer Generals Zero Hour Data\` (Zero Hour)
+and `%USERPROFILE%\Documents\Command and Conquer Generals Data\` (Generals).
+
+## What you get
+
+| Area | What it does |
+|---|---|
+| 64-bit | Both games build as x64 (`scripts/build-x64.ps1`) with replacements for the 32-bit-only pieces: a DirectX 8 helper library, the Miles sound system and the Bink video player. |
+| Native Vulkan renderer | The game's Direct3D 8 calls are answered by an own backend that draws with Vulkan 1.3. It is the default. |
+| Updated water | Terrain-depth based refraction, absorption (red disappears first), peaked waves, Fresnel reflection, sun glints, caustics in the shallows, crest glow, shoreline foam and wakes around units. |
+| Soft shadows | One shadow map from the sun. Shadows are sharp next to the object that casts them and get softer with distance (contact hardening). The sun angle is random on every launch. The engine's own stencil, decal and tree-blob shadows are not drawn. |
+| Ambient occlusion | Screen-space contact darkening in creases and under objects, at half resolution by default. |
+| Bloom and grading | Bright fire, explosions and glints glow; a soft highlight roll-off prevents hard clipping; slight saturation and contrast. |
+| Anti-aliasing | FXAA on the 3D scene only. The interface, text and videos are not filtered. |
+| Dynamic lights | Explosions and other light pulses light the ground and units around them, wash out the sun's shadows nearby, and the strongest one casts shadows of its own. |
+| Per-pixel lighting | Units and buildings get a soft sun highlight and a faint rim light. Anisotropic texture filtering (16x) keeps ground textures sharp at shallow angles. |
+| Scorch marks | Explosion marks on the ground use new, larger textures (generated for this project, not taken from the game) and are lit as shallow craters with a bowl and a rim, in the direction of the sun. |
+| Clouds | Moving cloud shadows on the ground; optional visible volumetric clouds when the camera is high. |
+| Heat haze, shockwaves | The Microwave Tank's and the GPS Scrambler's distortion effect works; a screen-space ring on explosions that shake the camera or scorch the ground. |
+| Frame rate | Drawing is no longer tied to the 30 Hz game logic; frames are drawn as fast as the GPU allows while the simulation stays at 30 Hz. The CPU records the next frame while the GPU draws the current one. |
+| Video sound | Movies (campaign cutscenes, intro) play their sound again. |
+| Camera | In games the camera can zoom out further (`MaxCameraHeight`); campaign scripts no longer force the 30 fps cap back on. |
+| Options menu | Check boxes for the new effects (optional, `Install-OptionsMenu.bat`). |
+| Tools | Timed screenshots for comparing renderers, an optional game clock in the main menu scene. |
+| Content filter | A `-uncensored` command line flag that ignores localized (for example German) model/texture overrides when a base version exists (Zero Hour only). No assets are included. |
+| Housekeeping | Many 64-bit pointer-size fixes, registry lookup for 32-bit registered installs, crash-handler stubs for x64, DDS header size fix. |
+
+## The two renderers
+
+| | **Enhanced** (default) | **Classic** |
+|---|---|---|
+| How | The game draws through its own Vulkan backend (`gfx_vulkan.cpp`). | The original Direct3D 8 code runs on a lightly patched [DXVK](https://github.com/doitsujin/dxvk) (Direct3D 8 translated to Vulkan). |
+| Look | All enhancements listed above. | The original rendering. Water still has the updated shaders (set `UpdatedWater = no` for the original water). |
+| Select | nothing to do | `GraphicsMode = classic` in `Options.ini`, or `Play-Original.bat` |
+| Needs | A Vulkan 1.3 driver (`vulkan-1.dll`). If it is missing or too old the game uses Classic automatically. | the DXVK DLLs next to the exe (included) |
+
+The native renderer is a software emulation of the Direct3D 8 fixed-function pipeline in shaders, plus the extra passes for
+shadows and post processing. It is **not** an engine rewrite. The game logic is untouched. What the native backend does
+not implement is listed under [Known problems](#known-problems-and-limitations).
+
+## What was tested
+
+Everything below was done by the author, on one machine. Nothing else was tested.
+
+**Machine:** Windows 11 Pro (build 26200), x64, NVIDIA GeForce RTX 4070 Ti, Visual Studio 2022 (MSVC 14.44), CMake, vcpkg (FFmpeg).
+
+**Game install:** *Zero Hour* 1.04 (German) and *Generals* 1.08 (German) from the **EA App**, installed next to each other.
+
+**Zero Hour: run and looked at**
+- Main menu and the animated shell map, windowed and fullscreen, on both renderers
+- Skirmish games on several maps up to base building, with HUD, minimap, snow, units, buildings, trees, water, shadows, explosions
+- A Generals Challenge mission for several minutes with the Vulkan validation layer on (no errors reported after the fixes in 0.2.3)
+- Heat haze, shockwaves, sound, cursor, movies with sound
+
+**Generals: run and looked at**
+- Start-up, intro scene and main menu with all effects (shadows, AO, bloom, explosion lights, FXAA)
+- `Play-Updated.bat` and `Play-Original.bat` both start the game (installed from the release zip)
+
+**Not tested at all**
+- Generals: skirmish and campaign games over a longer time, the options menu check boxes (the patch script ran, the result was not looked at), saved games, replays
+- Zero Hour: the campaign beyond one mission, saved games, replays, the map editor/tools
+- LAN, online or any lock-step multiplayer
+- Other GPUs and drivers (AMD, Intel), Windows 10, Linux/Proton, ultrawide or very high DPI setups
+- English or other language installs, Steam/disc installs
+- Long play sessions (memory use, leaks, stability)
+
+## All settings and flags
+
+### Options.ini
+
+Locations are given under [Running](#running). The game rewrites the file when it exits, so edit it while the game is closed. Keys that are missing use the default.
+
+**Renderer and enhancements**
+
+| Key | Default | Meaning |
+|---|---|---|
+| `GraphicsMode` | `enhanced` | `classic` = original rendering through Direct3D 8 on DXVK, none of the native effects below. Any other value, or no key: native Vulkan (falls back to classic if the driver is too old). |
+| `PostProcessing` | `yes` | `no` = draw the 3D scene straight to the screen: no bloom, grading, AO, FXAA and no shadows. |
+| `SoftShadows` | `yes` | `no` = no sun shadows at all (the engine's own shadows are not used on the native renderer either). |
+| `AmbientOcclusion` | `yes` | `no` = no contact darkening. |
+| `Bloom` | `yes` | `no` = no glow. |
+| `AntiAliasingFXAA` | `yes` | `no` = no edge smoothing. |
+| `SunAzimuth` | map | Compass direction of the sun in degrees (0 to 360). With no value the sun comes from the light of the map. |
+| `SunElevation` | map | Sun height in degrees (about 10 low and long shadows, 80 almost overhead). With no value it comes from the light of the map, kept between 30 and 70. |
+| `ShadowQuality` | `medium` | `high` (4096 shadow map), `medium` (2048 map) or `low` (2048 map and fewer filter taps). Costs about 1 ms per step at 2560x1440 on the test machine, with hardly any visible difference. |
+| `AmbientOcclusionQuality` | `half` | `half` renders the ambient occlusion at half resolution (about 0.8 ms cheaper), `full` at full resolution. |
+| `DynamicLights` | `yes` | Explosions, impacts and other light pulses light the ground and units around them, wash out the sun's shadows nearby, and the strongest one casts shadows of its own. |
+| `DynamicLightStrength` | `1.0` | Brightness of those lights. |
+| `AnisotropicFiltering` | `16` | Texture sharpness at shallow viewing angles (0 or 1 = off, up to 16). |
+| `PixelLighting` | `yes` | Per-pixel lighting of units and buildings with a soft sun highlight and a faint rim light. |
+| `SpecularStrength` | `0.30` | Strength of that highlight and rim light. |
+
+The effect switches are also in the game's options menu once `Install-OptionsMenu.bat` was run: **Options > Detail: Custom** opens the advanced
+pane with a group "Graphics enhancements" (soft shadows, ambient occlusion, bloom, anti-aliasing, new water, shockwaves, explosion light, unit
+highlights, sharp textures, clouds, cloud shadows). They apply immediately and are written to `Options.ini`. Changing them in the middle of a game is limited by the
+game itself, so use the main menu.
+
+**Effects shared by both renderers**
+
+| Key | Default | Meaning |
+|---|---|---|
+| `UpdatedWater` | `yes` | `no` = original water. Also used automatically if the updated shaders cannot be created. |
+| `WaterReflections` | `yes` | `no` = skip the extra mirrored render the water reflection needs. |
+| `Shockwaves` | `yes` | `no` = no shockwave ring on explosions. |
+| `HeatEffects` | game setting | `no` = no heat distortion (also in the game's options menu). |
+| `FPSLimit` | `no` (unlimited) | `yes` = the original 30 fps cap. The logic always runs at 30 Hz. |
+| `MaxCameraHeight` | `450` | How far the camera may zoom out in a game (the game's own value is 310; the main menu scene keeps 310). Set `310` for the original limit. |
+| `Clouds` | `no` | Visible volumetric clouds when the camera is above the cloud layer (needs a raised `MaxCameraHeight`, about 620 or more; costs performance). The cloud shadows below are independent of this. |
+| `CloudShadows` | `yes` | Moving cloud shadows on the ground; they replace the game's own cloud texture. |
+| `CloudBase` | `350` | Height of the underside of the clouds in world units (the ground is mostly between 0 and 100). Lower it so clouds show at a smaller zoom; keep it below `MaxCameraHeight`. |
+| `CloudThickness` | `120` | Thickness of the cloud layer. |
+| `CloudCoverage` | `0.2` | 0 clear sky to 1 overcast. |
+| `CloudDensity` | `0.85` | Opacity of the clouds. |
+| `CloudSpeed` | `1` | Drift speed. |
+| `CloudShadowStrength` | `0.85` | How dark the cloud shadows are, 0 to 1. |
+| `ScorchRelief` | `yes` | `no` = the new scorch marks without the crater lighting (needs the height map `Art\Textures\exscorch01_h.dds` from the zip, otherwise it is off anyway). |
+| `ScorchReliefStrength` | `1.0` | Strength of the crater lighting (0 = off). |
+| `IntroTimer` | `no` | `yes` = show the game clock in the main menu scene (to tell when something happens in it). |
+| `Resolution` | desktop | Without a value the game starts at the desktop resolution of the primary monitor (Full HD if it cannot be read). Use a resolution your display really supports at fullscreen. |
+
+### Environment variables (override Options.ini; mostly for development)
+
+| Variable | Effect |
+|---|---|
+| `GENERALS_ORIGINAL` | any value: no updated water, no shockwaves (used by `Play-Original.bat`). |
+| `GENERALS_GFX` | `vulkan` forces the native renderer, `null` runs without any output (test mode); any other non-empty value forces Classic. |
+| `GENERALS_POST` | `0` disables the post processing chain (and so shadows), `1` enables it. |
+| `GENERALS_SHADOWS` | `0` disables shadows. |
+| `GENERALS_SUN` | `azimuth,elevation` in degrees, for example `135,40`. |
+| `GENERALS_BLOOM` | bloom strength (default 0.16, `0` = off). |
+| `GENERALS_AO` | ambient occlusion strength (default 0.85, `0` = off). |
+| `GENERALS_FXAA` | `0` disables FXAA. |
+| `GENERALS_SHADOWQ`, `GENERALS_AOHALF` | shadow quality `0` low, `1` medium, `2` high; `0` = ambient occlusion at full resolution. |
+| `GENERALS_LIGHTS` | `0` disables the dynamic lights of explosions; `GENERALS_LIGHTSTRENGTH` scales them. |
+| `GENERALS_PIXELLIGHT` | `0` switches back to per-vertex lighting. |
+| `GENERALS_ANISO` | anisotropic filtering level, `0` = off. |
+| `GENERALS_SCORCHRELIEF` | strength of the crater lighting of scorch marks (`0` = off), overrides `Options.ini`. |
+| `GENERALS_TESTSCORCH` | debugging: puts a few scorch marks around the middle of the view. |
+| `GENERALS_INTROTIMER` | any value: show the game clock in the main menu scene. |
+| `GENERALS_VALIDATION` | `1` turns the Vulkan validation layer on (needs the Vulkan SDK or `VK_LAYER_PATH`); messages go to `gfx_vulkan.log` and slow the game down a lot. |
+| `GENERALS_SHOTS`, `GENERALS_SHOTDIR`, `GENERALS_SHOTTAG` | timed screenshots: game times in seconds (`4,8,12`), target folder and file prefix. The interface is left out of the pictures unless `GENERALS_SHOTUI` is set. Used by `tools\compare-screenshots.ps1`. |
+| `GENERALS_TESTLIGHT` | debugging: `x,y` (screen position from -1 to 1) puts a test light on the ground there. |
+
+### Comparing the renderers
+
+`tools\compare-screenshots.ps1 -GameDir "<game folder>" [-Times "4,8,12,16,20"]` starts the game once with the original and once with the updated graphics and takes screenshots of the intro scene (the 3D scene behind the main menu) at the same game times (30 logic frames per second, so the same moment of the scene). It writes `original_<frame>.png`, `updated_<frame>.png` and `compare_<frame>.png` (original on the left) to `docs\screenshots` (not committed). The sun is fixed for the comparison, and the clouds follow game time, so repeated runs match. Needs Python with Pillow. For the same timing in every run, run `Skip-IntroMovies.bat` first.
+
+### Command line flags
+
+| Flag | Meaning |
+|---|---|
+| `-win` | windowed mode |
+| `-xres N -yres N` | resolution |
+| `-noFog` | whole map visible, no shroud and no fog of war (drawing only; Options.ini `FogOfWar = no` does the same) |
+| `-maxZoom N` | zoom-out limit (camera height), wins over Options.ini `MaxCameraHeight` |
+| `-useCwd` | keep the current folder as working directory (*needed by this port*, set by the launchers) |
+| `-file <map path>` | start a map directly as a single player game, for example `-file "Maps\Alpine Assault\Alpine Assault.map"` |
+| `-mod <folder or .big>` | load an extra archive/folder that overrides the game's data (upstream) |
+| `-uncensored` | ignore localized model/texture overrides when a base version exists (Zero Hour), see [Other changes](#other-changes) |
+| `-quickstart`, `-noshellmap` | upstream shortcuts, handy for testing (`-quickstart` disables the menu background animation) |
+
+## How the enhancements work
+
+### Native Vulkan renderer
+
+All Direct3D 8 access of the engine goes through one wrapper (`DX8Wrapper`), and the game was changed to use neutral
+names (`GFX_*`) so the backend can be swapped. `gfx_null.cpp` is an in-memory backend that keeps all state and resources
+(it also runs the game with no GPU, for tests); `gfx_vulkan.cpp` derives from it and draws:
+
+- Vulkan 1.3 with dynamic rendering, push descriptors, a per-frame ring buffer for vertices/indices/uniforms and a pipeline cache
+- textures uploaded on demand with content hashing, 24-bit and DXT formats handled
+- two shaders (`Shaders/gfx_fixed.vert/.frag`) that reproduce the fixed-function pipeline: 4-stage texture combiners, alpha test,
+  vertex or per-pixel lighting, texture-coordinate generation and transforms, pre-transformed 2D vertices, point sprites with distance scaling
+- stencil, render-to-texture, back buffer read-back (heat haze, shockwave)
+- a half-pixel offset so Direct3D pixel centres line up with Vulkan
+
+The backend code lives in `Core/` and is shared by both games. The game-specific parts are small: hooks in the scene (dynamic lights), the shadow
+managers, the options menu and the in-game UI exist in both `Generals/` and `GeneralsMD/`.
+
+### Static buffers on the GPU
+
+Models and terrain (vertex and index buffers that are not marked dynamic) are copied to the GPU once and drawn from there; only dynamic data (particles, skinned
+or sorted geometry) goes through the per-frame ring buffer, which grows by itself (64 MB up to 512 MB per frame) if a frame needs more. A buffer that changes again
+right after it was copied is treated as dynamic. Before this, every draw copied its vertices again: with a mod that has very detailed models (about 2000 draws and 227 MB
+of vertex data per frame) the frame time was about 37 ms and, before the ring grew, most draws were dropped (black screen); now it is about 5 ms. The stock games gain too
+(the Generals intro scene went from about 13 ms to about 3 ms per frame). `gfx_vulkan.log` shows the ring buffer use in its `timing:` lines.
+
+### Frames in flight
+
+The renderer keeps two frames in flight: while the GPU draws one frame the CPU already records the next one (two command buffers, fences and ring-buffer halves, three swapchain images; resources of a finished frame are freed one frame later, and every command buffer starts with a global memory barrier so the frames cannot trample each other's images). On the test machine this took the intro scene from about 10 ms to about 6.6 ms per frame. `gfx_vulkan.log` gets a `timing:` line every 600 frames with the frame time and how long the CPU waited for the GPU.
+
+### Scene, interface and post processing
+
+The engine tells the backend where the 3D scene starts and ends (`W3DDisplay.cpp`). The scene is drawn into a 16-bit
+floating point image, goes through the post chain and lands in the swap chain; the interface, text and videos are then
+drawn on top, sharp and unfiltered.
+
+- **Bloom:** bright pass, 5-level down/up sample chain, added back with a soft threshold
+- **Highlight roll-off and grading:** values above 0.9 compress smoothly instead of clipping; a touch of saturation and contrast; dithering before the 8-bit output
+- **Ambient occlusion:** 20 samples per pixel around the scene depth, depth-aware blur in two passes. It is applied to the scene before particles and other blended effects are drawn, so smoke and fire are not darkened by it.
+- **FXAA:** the classic luma-based edge filter
+
+### Soft shadows
+
+Opaque geometry drawn in the scene is remembered and replayed from the sun into a depth map (2048 by default) that is fitted to the
+visible area and snapped to its texel grid so shadows do not shimmer when the camera moves. A full-screen pass rebuilds the
+world position of every pixel from the scene depth and the real 3D viewport, searches the map for blockers, estimates the
+distance to the nearest blocker and filters over a width that grows with it (percentage-closer soft shadows). That is why a
+shadow is crisp at the foot of a tree or unit and fades out along its length. The engine's stencil volumes, projected decals
+and the round blob under trees are not drawn on this renderer (decals such as range circles still are). The sun follows the light of the map, its height kept
+between 30 and 70 degrees (see `SunAzimuth` / `SunElevation`).
+
+### Dynamic lights
+
+The engine already keeps a list of light pulses (explosions, muzzle flashes, impacts). The scene hands up to 12 of them, strongest first, to the renderer. A
+screen-space pass adds their light to the ground and units around them using the scene depth, the sun shadows are faded out near them, and the strongest light renders
+a small shadow map of its own from a virtual lamp above it.
+
+### Updated water
+
+Files: `Core/GameEngineDevice/Source/W3DDevice/GameClient/Water/` (`W3DWater.cpp`, `Shaders/`, compiled headers),
+`Core/Libraries/Source/WWVegas/WW3D2/Shaders/gfx_water.frag` (native version), `OptionPreferences.*`.
+
+| Feature | How it works |
+|---|---|
+| Depth | The terrain height of the whole map is stored in a texture and sampled in world space; water depth is known per pixel. |
+| Refraction and absorption | The scene is copied once per frame and sampled through a wave-distorted lookup. Per-channel absorption by depth (red first) turns shallow turquoise into deep navy. |
+| Waves | Six peaked waves plus noise with a warped phase; they drive shading, glints and the reflection term. |
+| Reflection | The game's mirror pass is reused, with a sky gradient as fallback. From the usual camera angle most of the reflection is sky. |
+| Caustics, crest glow | Moving light patterns on the seabed in shallow water; sunlight shining through thin wave crests. |
+| Foam | A swash band that runs up the beach, foam clouds on the crests, and wakes. |
+| Units on water | The six ships, hovercraft or wading units nearest to the view centre disturb the surface: ripples around idle hulls, a V-shaped wake behind moving ones. |
+| Fallback | If the shaders cannot be created the original water shaders are used, with a depth tint baked into the vertex colours. |
+
+The classic renderer runs the HLSL version through a patched DXVK; its Direct3D 8 front end rejects pixel shaders above 1.x
+and the patch in `tools/dxvk/` removes that one clamp. The native renderer recognises the engine's two water shaders and runs
+the GLSL port instead.
+
+### Heat haze and shockwaves
+
+Heat haze is the game's own screen-space distortion; the native renderer provides the back-buffer read-back it needs.
+Shockwaves (`Shockwave.cpp`, `W3DShockwave.cpp`, fed from the `ViewShake` and `TerrainScorch` FX nuggets) copy the finished
+frame into a texture and redraw the ring zone as a displaced mesh. Disable with `Shockwaves = no`.
+
+### Video sound
+
+The video player had sound code only for OpenAL builds; this build uses the miniaudio based Miles replacement, so the soundtrack of every movie was dropped. `FFmpegVideoStream::pushAudio` now converts the decoded sound to 16 bit interleaved with libswresample and hands it to `MiniMiles_VideoAudio*` (`Dependencies/Miles/MiniMilesVideo.h`), which plays it as a sound of the same audio engine through a ring buffer. The volume is the voice volume of the game, but never below 60%.
+
+### Scorch marks
+
+The engine draws scorch marks as a patch of the terrain mesh, textured from a 3x3 atlas (`EXScorch01`). This port ships two loose textures in `Art\Textures\` that replace
+the atlas: `exscorch01.dds` (colour and coverage, 2048x2048, four times the resolution of the original) and `exscorch01_h.dds` (height of the ground, 0.5 = flat). Both are
+generated by `tools\gen_scorch.py` (procedural noise, nothing from the game or from other people's textures), so they are our own work. The native renderer reads the height map in a
+special draw path for scorch marks (`VkGfx_ScorchRelief`, `scorchRelief()` in `gfx_fixed.frag`): the slope of the height gives a normal in world space, which is lit by the sun of the
+shadow pass; shaded parts become a dark layer, sunlit rims a light one, and the mark itself is shaded and gets dusty highlights on the rim. Only the look changes: the terrain geometry
+and the game logic are untouched (units drive straight across a "crater"). The classic renderer uses the new colour atlas without the relief.
+
+### Intro timer and screenshots
+
+`IntroTimer = yes` shows the game clock in the main menu scene too. It counts logic frames since the start of the scene, the same time as the timecodes of the screenshot tool (`GENERALS_SHOTS`), so a moment in the scene can be named and captured identically on both renderers.
+
+## Other changes
+
+### 64-bit build
+
+| Change | Where | Why |
+|---|---|---|
+| x64 CMake presets `win64` and `win64-vcpkg` | `CMakePresets.json`, `CMakeLists.txt`, `cmake/dx8.cmake` | Upstream only has 32-bit presets. |
+| `Dependencies/D3DX8Compat` | new | `d3dx8.lib` exists only for x86; this re-implements what the game uses (matrix math, DXT conversion, mip generation, texture creation). |
+| `Dependencies/Miles/MiniMiles.cpp`, `Dependencies/miniaudio` | new | `mss32.dll` is 32-bit only. `MiniMiles` implements the ~70 Miles calls on top of [miniaudio](https://github.com/mackron/miniaudio). |
+| Video through FFmpeg | `-DRTS_BUILD_OPTION_FFMPEG=ON`, vcpkg manifest | The Bink SDK is 32-bit only; the engine's existing FFmpeg player is used. |
+| DDS header size | `ddsfile.h` | A `void*` member made the legacy header 136 bytes instead of 124 on x64, so every DDS texture failed to load. |
+| Registry lookups | `registry.cpp`/`.h` | Installs registered by the 32-bit EA App live under `WOW6432Node`. |
+| Pointer-size cleanups | ~40 small edits | `(Int)pointer` casts replaced with `intptr_t`/`uintptr_t`. |
+| Shutdown crashes | `dx8wrapper.cpp`, `WinMain.cpp` | The graphics library was unloaded before textures were released, and the C runtime ran static destructors of the memory pools after the memory manager was gone. |
+| Crash/stack code | `Except.cpp`, `debug_stack.cpp`, `StackDump.*` | The register/stack dump is x86-only; on x64 only the exception code and address are recorded. |
+
+### Frame pacing and camera
+
+`FramePacer` keeps the logic at 30 Hz when the render cap is off. `GameLogicDispatch.cpp` and `GameLOD.cpp` no longer switch the
+30 fps limit back on when a game starts or a detail preset is applied, and the `SET_FPS_LIMIT` script action (used by campaign missions) respects the same
+setting; `FPSLimit = yes` still restores the cap. The maximum zoom of the camera in a game is `MaxCameraHeight`.
+
+### The `-uncensored` flag
+
+Some regional editions replace models and textures through localized archives (for example `Data\<Language>\Art\W3D`). With
+`-uncensored` the game prefers the model from the base archives or from a mod when one exists, and ignores localized textures
+whose name contains `drone`. **No assets are included or downloaded.** What it finds depends on your own installation and any
+mod loaded with `-mod`. Only examined with a German Zero Hour install; the base game does not use this override, so the flag changes nothing there.
+
+## Other mods
+
+Mods that consist of data (`.big` archives, loose INI/scripts/maps) load as usual. This was tried with *The End of Days* (Zero Hour): its `!TEOD_*.big` files and loose
+`Data` files were copied into a Zero Hour folder next to this build, the mod's own `.exe` and `d3d8.dll` were **not** used, and a short skirmish played fine. Notes:
+
+- The mod's texts are English only. On a German (or other non-English) install the interface shows `MISSING: ...` unless you copy the mod's `Data\English\generals.csf`
+  into `Data\<your language>\` (for example `Data\German\`).
+- A mod that needs its own modified `.exe` (raised limits or engine changes) cannot use this build's exe unless the same changes are made in the source.
+- Only a short skirmish was played; longer games, the campaign and multiplayer are untested, and so is any other mod.
+
+## Known problems and limitations
+
+- **Multiplayer:** untested. Do not use this build online or in LAN games against other players. Graphics changes are meant
+  not to touch the simulation, but this was never checked for lock-step play.
+- **Zero Hour is the main target.** The base game (`Generals/`) builds and runs with the same renderer and was given the same edits, but it has had far less testing.
+- **Vanishing bushes:** in the intro scene of Zero Hour some bushes on the slopes can disappear after a while (the original renderer keeps them). The cause was not found. It has not been seen as a problem in games.
+- **Sound:** some audio clips play back oddly. Not investigated.
+- **Heavy mods:** very large scenes use more CPU for drawing than the stock games (about 2000 draws per frame in the mod mentioned above).
+- **One test machine.** Other GPUs/drivers may show glitches, especially in the native renderer.
+- **Native renderer gaps:** no programmable shaders other than the two water shaders, no fixed-function fog (the game keeps fog disabled everywhere), no cube/volume textures, no
+  multisampling, no gamma ramp. Menus, HUD and the 3D game are covered; anything that needs those paths is skipped or looks
+  different. If something looks wrong set `GraphicsMode = classic`.
+- **Post chain:** the ambient occlusion and shadow strengths are tuned by eye on a few maps. The shadow map covers the
+  visible area only, so very distant objects and very large views may show edge artifacts.
+- **Shadows:** only opaque geometry casts them; alpha-blended objects cast none. The sun is fixed for a session (the map's
+  time-of-day light changes are ignored). Particle effects can look slightly brighter than the lit ground under them because lighting is applied before they are drawn.
+- **Water:** reflections are mostly sky; only one reflection plane height is used; ripples and wakes cover at most six units
+  near the view centre. Tuned on the shell map and a few skirmish maps.
+- **Fullscreen:** a resolution your display does not support exactly can hang or show a black screen.
+- **Remaining warnings:** pointer-size warnings remain in places (integers stored in `void*` user-data, GameSpy/menu code).
+- **Crash reports** on x64 contain only the exception code and address.
+- **No updater, no installer.** The zip is a manual copy.
+
+## Troubleshooting
+
+Notes from the author's own experience, not a help desk.
+
+| Symptom | Likely cause |
+|---|---|
+| "DirectX 8 not available" at start | You started an exe without the DXVK DLLs next to it, in Classic mode. Use the `.bat` launchers. |
+| Nothing starts when double-clicking the `.bat` | It was copied into the wrong folder (it must sit next to the `.big` files and the `x64` folder). |
+| Black screen or hang in fullscreen | Unsupported exclusive-fullscreen resolution. Try windowed or a native resolution. |
+| Something looks wrong in the enhanced renderer | Try `GraphicsMode = classic`, or turn single effects off (`SoftShadows`, `AmbientOcclusion`, `Bloom`, `AntiAliasingFXAA`, `PostProcessing`). Look into `gfx_vulkan.log`. |
+| It runs Classic although you did not ask | The Vulkan driver is older than 1.3 or `vulkan-1.dll` is missing. |
+| Magenta/missing textures | An old build without the DDS header fix, or damaged game archives. |
+| No cursor | The game was not started with `-useCwd`. Use the `.bat` launchers. |
+| No videos | The FFmpeg DLLs are not in the `x64` folder. |
+| Stuck at 30 fps | `Options.ini` contains `FPSLimit = yes`. |
+| Very slow | The Vulkan validation layer is on (`GENERALS_VALIDATION` is set in your environment). |
+| Language/path empty after reinstalling | The game is registered in a registry location the lookup does not know. Check the `WOW6432Node` entry. |
+
+## Building it yourself
+
+**Requirements:** Windows 10/11 x64; Visual Studio 2022 with the *Desktop development with C++* workload (includes CMake and the Windows SDK); Git;
+[vcpkg](https://github.com/microsoft/vcpkg) (used for FFmpeg) with `VCPKG_ROOT` set; Python 3 with `pip` (only for building the patched DXVK); internet access for
+the first build (CMake fetches the DirectX 8 and Vulkan headers, vcpkg builds FFmpeg, the DXVK script downloads DXVK and glslang).
+
+All commands in PowerShell, from the repository root.
+
+```powershell
+# 1. get the sources
+git clone https://github.com/JaChriCaeTob/ModernGeneralsZH GeneralsZH-x64
+cd GeneralsZH-x64
+
+# 2. vcpkg (FFmpeg is built through it). Skip the first two lines if you already have a checkout.
+git clone https://github.com/microsoft/vcpkg.git C:\vcpkg
+C:\vcpkg\bootstrap-vcpkg.bat -disableMetrics
+$env:VCPKG_ROOT = "C:\vcpkg"      # set it in every new PowerShell window before step 3
+
+# 3. build the games (the first run takes a while: FFmpeg is compiled by vcpkg)
+powershell -File scripts\build-x64.ps1 -Video                        # Zero Hour
+powershell -File scripts\build-x64.ps1 -Video -Target g_generals     # Generals
+#   -Video : with FFmpeg so the game's .bik videos play. Without it videos are skipped.
+#   -Clean : rebuild everything
+# Output: build\win64-vcpkg\GeneralsMD\Release\generalszh.exe and build\win64-vcpkg\Generals\Release\generalsv.exe
+#         (the FFmpeg DLLs are next to the Zero Hour exe)
+
+# 4. build the patched DXVK (only needed for the Classic renderer; reuses the headers CMake fetched in step 3)
+powershell -File tools\dxvk\build-dxvk.ps1
+# Output: tools\dxvk\work\out\d3d8.dll d3d9.dll dxgi.dll
+
+# 5. package both games like the release zip
+powershell -File tools\make-release.ps1 -Version 0.4.0
+# or install the Zero Hour build straight into a game folder:
+powershell -File tools\install-to-game.ps1 -GameDir "D:\Games\Command and Conquer Generals Zero Hour"
 ```
 
-**Linux (via Docker)**
-```bash
-./scripts/docker-build.sh              # Build using Docker
-./scripts/docker-install.sh --detect # Install to your game
+Notes
+- `scripts/build-x64.ps1` creates a tiny `afxres.h` shim in `build/shim` because the resource file expects MFC's header.
+- The compiled shaders are committed (`gfx_vk_shaders.h` for the native renderer, `Water/Shaders/*PS.h` for the classic water), so
+  no shader compiler is needed to build. After editing the GLSL in `Core/Libraries/Source/WWVegas/WW3D2/Shaders/` run
+  `scripts\compile-vk-shaders.ps1` (needs `glslang`, which `tools\dxvk\build-dxvk.ps1` downloads); after editing the classic
+  water HLSL run `scripts\compile-shaders.ps1` (needs `fxc.exe` from the Windows SDK).
+- `tools/dxvk/0001-*.patch` is the whole DXVK change (a few lines in `src/d3d9/d3d9_device.cpp`).
+- `tools\install-to-game.ps1` only installs Zero Hour. For Generals use the release zip, or copy `generalsv.exe` as `x64\generalsv64.exe` together with the DLLs and the launchers.
+
+## Repository layout of the additions
+
+```
+README.md                      this file
+README_UPSTREAM.md             the upstream README
+THIRD_PARTY_NOTICES.md         licenses of what is vendored or downloaded
+release_<version>.zip          the packaged builds of both games (no game files)
+docs/PORT_NOTES.md             technical notes
+docs/RENDER_CALLSITES.md       every place the engine talks to the graphics API
+scripts/build-x64.ps1          build the x64 games
+scripts/compile-vk-shaders.ps1 recompile the native renderer's GLSL shaders (needs glslang)
+scripts/compile-shaders.ps1    recompile the classic water shaders (needs fxc.exe)
+scripts/gen_null_stubs.py, scripts/callsites.py   helpers that generated parts of the backend interface
+tools/make-release.ps1         build release_<version>.zip from finished builds
+tools/release/                 launcher helper scripts that go into the zip (skip/restore intro movies)
+tools/compare-screenshots.ps1, tools/make_compare.py   timed screenshot comparison of the two renderers
+tools/bigtool.py               list/extract EA .big archives
+tools/patch_options_wnd.py     adds the graphics check boxes to the options menu (Install-OptionsMenu.bat runs it)
+tools/w3d_to_glb.py, tools/glb_to_w3d.py, tools/w3dlib.py, tools/w3d_sizes.py, tools/find_model_users.py   W3D model helpers (see docs/MODELS.md)
+tools/dxvk/                    patch + script for the patched DXVK (Classic renderer)
+tools/install-to-game.ps1      copy the Zero Hour build into your own game folder
+assets/Art/                    self-made replacement models and textures, copied into the game by the install script
+Dependencies/D3DX8Compat/      d3dx8 replacement
+Dependencies/Miles/MiniMiles.cpp, Dependencies/miniaudio/   sound (and movie sound) for x64
+Core/Libraries/Source/WWVegas/WW3D2/gfx_*.cpp/.h/.inl   neutral graphics types, null backend, native Vulkan backend, post chain, shadows
+Core/Libraries/Source/WWVegas/WW3D2/Shaders/            GLSL for the native renderer
+Core/GameEngineDevice/.../Water/Shaders/                water shaders for the classic renderer (HLSL + compiled headers)
+Core/GameEngine*/ ... Shockwave*                        explosion ring
+Generals/, GeneralsMD/         the two games' code (base game and Zero Hour)
 ```
 
-### Dependency management
+## Licenses and credits
 
-The repository uses a vcpkg manifest (`vcpkg.json`). Dependency versions come from the `builtin-baseline` commit
-recorded there, with per-port `overrides` when a specific version is required. Update the baseline to pick up new
-versions. GitHub Actions consumes these ports through a vcpkg binary cache backed by a NuGet feed on GitHub
-Packages, keyed by vcpkg's own ABI hashes, so the first CI build warms the feed and subsequent builds pull prebuilt
-binaries instead of re-compiling everything. Pull requests from forks restore from the feed but cannot write to it.
-
-### Profiling
-
-Tracy profiling is supported in the CMake preset `win32-profile`.
-Use `tracy-profiler.exe` from [Tracy v0.13.1](https://github.com/wolfpld/tracy/releases/tag/v0.13.1).
-If you get an error when using Tracy, try removing `dbghelp.dll` from the game binary directory.
-
-## Contributing
-
-We welcome contributions to the project! If you’re interested in contributing, you need to have knowledge of C++. Join
-the developer chat on Discord for more information on how to get started. Please make sure to read our
-[Contributing Guidelines](CONTRIBUTING.md) before submitting a pull request. You can also check out 
-the [Wiki](https://github.com/TheSuperHackers/GeneralsGameCode/wiki) for more detailed documentation.
-
-
-## License & Legal Disclaimer
-
-EA has not endorsed and does not support this product. All trademarks are the property of their respective owners.
-
-This project is licensed under the [GPL-3.0 License](https://www.gnu.org/licenses/gpl-3.0.html), which allows you to
-freely modify and distribute the source code under the terms of this license. Please see [LICENSE.md](LICENSE.md) 
-for details.
+- **Who did the work here:** Claude Code (Anthropic) wrote the changes, scripts, shaders, patches and documentation in this
+  repository; the repository owner only supplied prompts and testing feedback. Mistakes in it are this project's own, not the
+  upstream authors'.
+- **This version:** dement123 (Nexus Mods) continued the 64-bit Vulkan fork with gameplay changes, the hard skirmish AI,
+  deterministic pathfinding and bug fixes, written with Claude Code.
+- The game code is licensed under **GPL v3 with EA's additional terms**, see [LICENSE.md](LICENSE.md). The changes in this
+  repository are released under the same license.
+- Upstream: the [TheSuperHackers/GeneralsGameCode](https://github.com/TheSuperHackers/GeneralsGameCode) contributors. If you
+  want fixes and features for the game itself, contribute there.
+- [DXVK](https://github.com/doitsujin/dxvk) (zlib license): built by `tools/dxvk/build-dxvk.ps1` with the patch from `tools/dxvk`; the built DLLs are in the release zip.
+- [Vulkan-Headers](https://github.com/KhronosGroup/Vulkan-Headers) (Apache-2.0 / MIT): fetched by CMake at build time.
+- [miniaudio](https://github.com/mackron/miniaudio) (public domain / MIT-0): vendored unmodified.
+- FFmpeg (via vcpkg; LGPL, its DLLs are in the release zip), glslang (downloaded by the DXVK script): not stored in the source tree.
+- See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+- No game assets, executables, archives or third-party mods are part of this repository.

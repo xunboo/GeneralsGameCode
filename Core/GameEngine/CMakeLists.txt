@@ -169,6 +169,7 @@ set(GAMEENGINE_SRC
     Include/GameClient/ExtendedMessageBox.h
 #    Include/GameClient/FontDesc.h
     Include/GameClient/FXList.h
+    Include/GameClient/Shockwave.h
     Include/GameClient/Gadget.h
     Include/GameClient/GadgetCheckBox.h
     Include/GameClient/GadgetComboBox.h
@@ -493,6 +494,7 @@ set(GAMEENGINE_SRC
      Include/GameLogic/Pathfinder/PathfindCellInfo.h
      Include/GameLogic/Pathfinder/PathfindCellList.h
      Include/GameLogic/Pathfinder/PathfindConstants.h
+     Include/GameLogic/Pathfinder/PathSearchContext.h
      Include/GameLogic/Pathfinder/PathfindLayer.h
      Include/GameLogic/Pathfinder/PathfindZoneManager.h
      Include/GameLogic/Pathfinder/PathNode.h
@@ -723,6 +725,7 @@ set(GAMEENGINE_SRC
     Source/GameClient/DrawGroupInfo.cpp
 #    Source/GameClient/Eva.cpp
     Source/GameClient/FXList.cpp
+    Source/GameClient/Shockwave.cpp
 #    Source/GameClient/GameClient.cpp
     Source/GameClient/GameClientDispatch.cpp
     Source/GameClient/GameText.cpp
@@ -1191,9 +1194,12 @@ target_link_libraries(corei_gameengine_private INTERFACE
     corei_always
 )
 
-target_compile_definitions(corei_gameengine_private INTERFACE
-    IG_DEBUG_STACKTRACE
-)
+# x86-only stack walking; unsupported on 64-bit builds.
+if(CMAKE_SIZEOF_VOID_P EQUAL 4)
+    target_compile_definitions(corei_gameengine_private INTERFACE
+        IG_DEBUG_STACKTRACE
+    )
+endif()
 
 target_precompile_headers(corei_gameengine_private INTERFACE
     Include/Precompiled/PreRTS.h

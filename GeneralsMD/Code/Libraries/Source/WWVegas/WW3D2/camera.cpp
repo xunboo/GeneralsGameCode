@@ -739,19 +739,19 @@ void CameraClass::Apply()
 	bool windowed;
 	WW3D::Get_Render_Target_Resolution(width,height,bits,windowed);
 
-	RenderViewport vp;
-	vp.x = (unsigned int)(Viewport.Min.X * (float)width);
-	vp.y = (unsigned int)(Viewport.Min.Y * (float)height);
-	vp.width = (unsigned int)((Viewport.Max.X - Viewport.Min.X) * (float)width);
-	vp.height = (unsigned int)((Viewport.Max.Y - Viewport.Min.Y) * (float)height);
-	vp.min_z = ZBufferMin;
-	vp.max_z = ZBufferMax;
-	Renderer::Set_Viewport(vp);
+	GfxViewport vp;
+	vp.X = (DWORD)(Viewport.Min.X * (float)width);
+	vp.Y = (DWORD)(Viewport.Min.Y * (float)height);
+	vp.Width = (DWORD)((Viewport.Max.X - Viewport.Min.X) * (float)width);
+	vp.Height = (DWORD)((Viewport.Max.Y - Viewport.Min.Y) * (float)height);
+	vp.MinZ = ZBufferMin;
+	vp.MaxZ = ZBufferMax;
+	DX8Wrapper::Set_Viewport(&vp);
 
 	Matrix4x4 d3dprojection;
 	Get_D3D_Projection_Matrix(&d3dprojection);
 	DX8Wrapper::Set_Projection_Transform_With_Z_Bias(d3dprojection,ZNear,ZFar);
-	DX8Wrapper::Set_Transform(D3DTS_VIEW,CameraInvTransform);
+	DX8Wrapper::Set_Transform(GFX_TS_VIEW,CameraInvTransform);
 }
 
 void CameraClass::Set_Clip_Planes(float znear,float zfar)
