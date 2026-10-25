@@ -8,6 +8,7 @@ set(COREI_GOOGLETEST_SRC
     GameEngine/GameClient/DisplayStringDummyTest.cpp
     GameEngine/GameLogic/CompetitiveSkirmishAITest.cpp
     GameEngineDevice/StdDevice/Common/StdLocalFileSystemTest.cpp
+    GameEngine/GameLogic/CompetitiveSkirmishAITest.cpp
     Libraries/Compression/CompressionManagerTest.cpp
     Libraries/WWVegas/WW3D2/hlod_test.cpp
     Libraries/WWVegas/WW3D2/soundrobj_test.cpp
